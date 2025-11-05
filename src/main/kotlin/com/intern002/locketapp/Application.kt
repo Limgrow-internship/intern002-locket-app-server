@@ -1,8 +1,8 @@
 package com.intern002.locketapp
 
-import com.keepinwidget.plugins.configureRouting
-import com.keepinwidget.plugins.configureSecurity
-import com.keepinwidget.plugins.configureSerialization
+import com.intern002.locketapp.plugins.configureRouting
+import com.intern002.locketapp.plugins.configureSecurity
+import com.intern002.locketapp.plugins.configureSerialization
 import io.ktor.server.application.*
 import io.ktor.server.netty.EngineMain
 
