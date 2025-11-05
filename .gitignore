@@ -38,7 +38,10 @@ out/
 # ⚠️ TUYỆT ĐỐI MẬT (Chứa Pass DB)
 /src/main/resources/application.yaml
 /src/main/resources/application.conf
+/src/main/resources/.env
 
+# global env files
+*.env
 # macOS
 .DS_Store
 
