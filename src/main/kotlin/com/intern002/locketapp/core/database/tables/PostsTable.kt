@@ -9,9 +9,7 @@ object PostsTable : Table("posts") {
     val id = uuid("id").autoGenerate()
     val authorId = uuid("author_id").references(UsersTable.id, onDelete = ReferenceOption.CASCADE)
     val mediaUrl = text("media_url")
-    val mediaType = text("media_type").check {
-        it inList listOf("photo", "video")
-    }
+    val mediaType = text("media_type").check { it inList listOf("photo", "video") }
     val caption = text("caption").nullable()
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
 

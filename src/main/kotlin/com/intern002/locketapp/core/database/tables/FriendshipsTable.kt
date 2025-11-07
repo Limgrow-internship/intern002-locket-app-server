@@ -11,16 +11,18 @@ object FriendshipsTable : Table("friendships") {
     val requesterId = uuid("requester_id").references(UsersTable.id, onDelete = ReferenceOption.CASCADE)
     val addresseeId = uuid("addressee_id").references(UsersTable.id, onDelete = ReferenceOption.CASCADE)
 
-    val status = text("status").default("pending").check {
-        it inList listOf("pending", "accepted", "rejected")
-    }
+    val status =
+        text("status").default("pending").check {
+            it inList listOf("pending", "accepted", "rejected")
+        }
 
     // ... REFERENCES conversations(id) ON DELETE SET NULL
     // Thêm .uniqueIndex() vì schema của cậu có UNIQUE(conversation_id)
-    val conversationId = uuid("conversation_id").references(
-        ConversationsTable.id,
-        onDelete = ReferenceOption.SET_NULL
-    ).nullable().uniqueIndex()
+    val conversationId =
+        uuid("conversation_id").references(
+            ConversationsTable.id,
+            onDelete = ReferenceOption.SET_NULL,
+        ).nullable().uniqueIndex()
 
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp())
