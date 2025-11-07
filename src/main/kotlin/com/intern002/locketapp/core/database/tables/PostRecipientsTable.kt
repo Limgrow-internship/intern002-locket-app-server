@@ -13,7 +13,6 @@ object PostRecipientsTable : Table("post_recipients") {
 
     override val primaryKey = PrimaryKey(id)
 
-    // UNIQUE (post_id, recipient_id)
     init {
         uniqueIndex("post_recipients_post_id_recipient_id_unique", postId, recipientId)
     }

@@ -7,11 +7,11 @@ import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 
 fun Application.configureSecurity() {
-    // Please read the jwt property from the config file if you are using EngineMain
-    val jwtAudience = "jwt-audience"
-    val jwtDomain = "https://jwt-provider-domain/"
-    val jwtRealm = "ktor sample app"
-    val jwtSecret = "secret"
+    val jwtSecret = System.getenv("JWT_SECRET") ?: "defaultSecret"
+    val jwtAudience = System.getenv("JWT_AUDIENCE") ?: "users"
+    val jwtDomain = System.getenv("JWT_DOMAIN") ?: "com.intern002.locketapp"
+    val jwtRealm = System.getenv("JWT_REALM") ?: "LocketApp"
+
     authentication {
         jwt {
             realm = jwtRealm
@@ -20,11 +20,14 @@ fun Application.configureSecurity() {
                     .require(Algorithm.HMAC256(jwtSecret))
                     .withAudience(jwtAudience)
                     .withIssuer(jwtDomain)
-                    .build(),
+                    .build()
             )
             validate { credential ->
-                if (credential.payload.audience.contains(jwtAudience)) JWTPrincipal(credential.payload) else null
+                if (credential.payload.audience.contains(jwtAudience))
+                    JWTPrincipal(credential.payload)
+                else null
             }
         }
     }
 }
+
