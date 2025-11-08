@@ -5,12 +5,11 @@ import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.CurrentTimestamp
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 
-object FcmTokensTable: Table("fcm_tokens") {
-
+object FcmTokensTable : Table("fcm_tokens") {
     val id = uuid("id").autoGenerate()
     val userId = uuid("user_id").references(UsersTable.id, onDelete = ReferenceOption.CASCADE)
-    val token = text("text")
-    val deviceInfo= text("device_info").nullable()
+    val token = text("token")
+    val deviceInfo = text("device_info").nullable()
     val isActive = bool("is_active").default(true)
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp())
