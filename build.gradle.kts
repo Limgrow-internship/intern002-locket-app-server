@@ -59,6 +59,16 @@ dependencies {
     // --- Test ---
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.kotlin.test.junit)
+
+    implementation("org.jetbrains.exposed:exposed-core:0.41.1") // (Check version mới nhất)
+
+    implementation("org.jetbrains.exposed:exposed-jdbc:0.41.1")
+
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.41.1")
+
+    implementation("org.postgresql:postgresql:42.5.0")
+
+    implementation("com.zaxxer:HikariCP:5.0.1")
 }
 
 ktlint {
