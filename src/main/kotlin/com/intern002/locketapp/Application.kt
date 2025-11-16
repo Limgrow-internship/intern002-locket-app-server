@@ -2,6 +2,7 @@ package com.intern002.locketapp
 
 import com.intern002.locketapp.core.database.DatabaseFactory
 import com.intern002.locketapp.plugins.configureDependencyInjection
+import com.intern002.locketapp.plugins.configureMonitoring
 import com.intern002.locketapp.plugins.configureRouting
 import com.intern002.locketapp.plugins.configureSecurity
 import com.intern002.locketapp.plugins.configureSerialization
@@ -36,6 +37,7 @@ fun Application.module() {
 
     logger.info("Database connected successfully!")
 
+    configureMonitoring()
     configureDependencyInjection()
     configureSecurity()
     configureSerialization()

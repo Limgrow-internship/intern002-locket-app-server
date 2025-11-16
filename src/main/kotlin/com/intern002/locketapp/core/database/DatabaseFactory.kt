@@ -18,12 +18,14 @@ object DatabaseFactory {
         databaseUser: String,
         databasePassword: String,
     ) {
+        logger.info("Initializing DB connection...")
         try {
             val dataSource = createHikariDataSource(databaseUrl, databaseUser, databasePassword)
             Database.connect(dataSource)
             logger.info("Connected to Supabase PostgreSQL successfully!")
 
             transaction {
+                logger.info("Creating or verifying database schema...")
                 SchemaUtils.create(
                     UsersTable,
                     FriendshipsTable,
@@ -36,9 +38,10 @@ object DatabaseFactory {
                     ConversationsTable,
                     MessagesTable,
                 )
+                logger.info("Database schema verification/creation complete.")
             }
         } catch (e: Exception) {
-            logger.error("Failed to connect to Supabase DB: ${e.message}", e)
+            logger.error("Failed to connect or initialize DB schema. Root cause: ${e.cause?.message}", e)
         }
     }
 
@@ -57,12 +60,16 @@ object DatabaseFactory {
                 maximumPoolSize = maxPoolSize
                 isAutoCommit = false
                 transactionIsolation = "TRANSACTION_REPEATABLE_READ"
-                dataSourceProperties["sslmode"] = "require" // ⚡ Bắt buộc với Supabase
+                dataSourceProperties["sslmode"] = "require"
+                
+                // FIX: Disable named prepared statements for PgBouncer compatibility
+                dataSourceProperties["prepareThreshold"] = 0
+
                 validate()
             }
+
         return HikariDataSource(config)
     }
 
-    // Hàm tiện ích chạy truy vấn trong coroutine context
     suspend fun <T> dbQuery(block: suspend () -> T): T = newSuspendedTransaction(Dispatchers.IO) { block() }
 }

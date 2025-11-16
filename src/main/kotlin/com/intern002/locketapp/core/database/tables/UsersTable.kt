@@ -7,12 +7,14 @@ import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 
 object UsersTable : Table("users") {
     val id = uuid("id").autoGenerate()
-    val email = text("email").uniqueIndex().nullable()
+    val email = text("email").uniqueIndex()
     val passwordHash = text("password_hash").nullable()
     val username = text("username")
     val discriminator = integer("discriminator")
     val birthday = date("birthday")
-    val provider = text("provider").default("email").check { it inList listOf("email", "google", "facebook") }
+    val provider = text("provider")
+        .default("email")
+        .check { it inList listOf("email", "google", "facebook") }
     val avatarUrl = text("avatar_url").nullable()
     val providerId = text("provider_id").nullable()
     val refreshToken = text("refresh_token").nullable()

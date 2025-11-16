@@ -5,29 +5,38 @@ import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
+import java.util.UUID
+
+data class UserIdPrincipal(val userId: UUID)
 
 fun Application.configureSecurity() {
-    val jwtSecret = System.getenv("JWT_SECRET") ?: "defaultSecret"
+    val jwtSecret = System.getenv("JWT_SECRET") ?: "default-secret-for-development-only"
     val jwtAudience = System.getenv("JWT_AUDIENCE") ?: "users"
-    val jwtDomain = System.getenv("JWT_DOMAIN") ?: "com.intern002.locketapp"
-    val jwtRealm = System.getenv("JWT_REALM") ?: "LocketApp"
+    val jwtIssuer = System.getenv("JWT_ISSUER") ?: "com.intern002.locketapp"
+    val jwtRealm = "Locket App"
 
-    authentication {
+    install(Authentication) {
         jwt {
             realm = jwtRealm
             verifier(
-                JWT
-                    .require(Algorithm.HMAC256(jwtSecret))
+                JWT.require(Algorithm.HMAC256(jwtSecret))
                     .withAudience(jwtAudience)
-                    .withIssuer(jwtDomain)
+                    .withIssuer(jwtIssuer)
                     .build()
             )
             validate { credential ->
-                if (credential.payload.audience.contains(jwtAudience))
-                    JWTPrincipal(credential.payload)
-                else null
+                val userIdString = credential.payload.getClaim("userId").asString()
+
+                if (userIdString != null) {
+                    try {
+                        UserIdPrincipal(UUID.fromString(userIdString))
+                    } catch (e: IllegalArgumentException) {
+                        null
+                    }
+                } else {
+                    null
+                }
             }
         }
     }
 }
-
