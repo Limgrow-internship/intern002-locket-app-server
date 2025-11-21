@@ -9,6 +9,7 @@ import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
+import kotlin.system.exitProcess
 
 object DatabaseFactory {
     private val logger = LoggerFactory.getLogger("DatabaseFactory")
@@ -41,7 +42,8 @@ object DatabaseFactory {
                 logger.info("Database schema verification/creation complete.")
             }
         } catch (e: Exception) {
-            logger.error("Failed to connect or initialize DB schema. Root cause: ${e.cause?.message}", e)
+            logger.error("FATAL: Failed to connect or initialize DB schema. Exiting application.", e)
+            exitProcess(1) // Stop the application
         }
     }
 
@@ -61,10 +63,7 @@ object DatabaseFactory {
                 isAutoCommit = false
                 transactionIsolation = "TRANSACTION_REPEATABLE_READ"
                 dataSourceProperties["sslmode"] = "require"
-                
-                // FIX: Disable named prepared statements for PgBouncer compatibility
                 dataSourceProperties["prepareThreshold"] = 0
-
                 validate()
             }
 

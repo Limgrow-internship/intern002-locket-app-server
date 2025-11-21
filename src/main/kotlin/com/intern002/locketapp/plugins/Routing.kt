@@ -2,6 +2,8 @@ package com.intern002.locketapp.plugins
 
 import com.intern002.locketapp.features.auth.AuthService
 import com.intern002.locketapp.features.auth.authRoutes
+import com.intern002.locketapp.features.users.UserService
+import com.intern002.locketapp.features.users.userRoutes
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -12,6 +14,7 @@ import org.koin.ktor.ext.inject
 fun Application.configureRouting() {
 
     val authService: AuthService by inject()
+    val userService: UserService by inject()
 
     routing {
         get("/") {
@@ -19,6 +22,7 @@ fun Application.configureRouting() {
         }
 
         authRoutes(authService)
+        userRoutes(userService, authService)
 
         authenticate {
             get("/test/me") {

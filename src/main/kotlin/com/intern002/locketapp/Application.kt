@@ -1,11 +1,8 @@
 package com.intern002.locketapp
 
 import com.intern002.locketapp.core.database.DatabaseFactory
-import com.intern002.locketapp.plugins.configureDependencyInjection
-import com.intern002.locketapp.plugins.configureMonitoring
-import com.intern002.locketapp.plugins.configureRouting
-import com.intern002.locketapp.plugins.configureSecurity
-import com.intern002.locketapp.plugins.configureSerialization
+import com.intern002.locketapp.core.firebase.initFirebaseAdmin
+import com.intern002.locketapp.plugins.*
 import io.github.cdimascio.dotenv.dotenv
 import io.ktor.server.application.*
 import org.slf4j.LoggerFactory
@@ -34,6 +31,7 @@ fun Application.module() {
     logger.info("Connecting to database...")
 
     DatabaseFactory.init(dbUrl ?: error("Missing DATABASE_URL"), dbUser ?: "", dbPassword ?: "")
+    initFirebaseAdmin()
 
     logger.info("Database connected successfully!")
 
@@ -42,4 +40,5 @@ fun Application.module() {
     configureSecurity()
     configureSerialization()
     configureRouting()
+    configureStatusPages()
 }

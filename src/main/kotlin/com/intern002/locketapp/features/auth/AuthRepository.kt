@@ -1,33 +1,42 @@
 package com.intern002.locketapp.features.auth
 
 import com.intern002.locketapp.core.database.DatabaseFactory.dbQuery
-import com.intern002.locketapp.core.database.tables.FriendshipsTable
-import com.intern002.locketapp.core.database.tables.NotificationsTable
 import com.intern002.locketapp.core.database.tables.UsersTable
-import io.ktor.util.date.getTimeMillis
 import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import java.util.UUID
-
 
 data class User(
     val id: UUID,
     val email: String,
     val username: String,
-    val passwordHash: String,
+    val passwordHash: String?,
     val discriminator: Int,
     val avatarUrl: String?,
-    val birthday: LocalDate
+    val birthday: LocalDate,
+    val provider: String,
+    val providerId: String?
 )
 
 interface AuthRepository {
-    suspend fun findByUsername(username: String): User?
     suspend fun findByEmail(email: String): User?
     suspend fun findById(userId: UUID): User?
+    suspend fun findByProviderId(providerId: String): User?
     suspend fun findByUsernameAndDiscriminator(username: String, discriminator: Int): User?
-    suspend fun createUser(email: String, username: String, passwordHash: String, birthday: LocalDate, discriminator: Int): User?
-    suspend fun updateUser(userId: UUID, email: String?, username: String?, passwordHash: String?, birthday: LocalDate?, avatarUrl: String?): Boolean
+    suspend fun createUser(
+        email: String,
+        username: String,
+        passwordHash: String?,
+        birthday: LocalDate, //
+        discriminator: Int,
+        provider: String,
+        providerId: String?
+    ): User?
+
+    suspend fun linkGoogleAccount(userId: UUID, providerId: String): Boolean
+    suspend fun updateRefreshToken(userId: UUID, refreshToken: String?): Boolean
+    suspend fun findUserByRefreshToken(refreshToken: String): User?
 }
 
 class AuthRepositoryImpl : AuthRepository {
@@ -36,17 +45,13 @@ class AuthRepositoryImpl : AuthRepository {
         id = row[UsersTable.id],
         email = row[UsersTable.email],
         username = row[UsersTable.username],
-        passwordHash = row[UsersTable.passwordHash] ?: "",
+        passwordHash = row[UsersTable.passwordHash],
         discriminator = row[UsersTable.discriminator],
         avatarUrl = row[UsersTable.avatarUrl],
-        birthday = row[UsersTable.birthday]
+        birthday = row[UsersTable.birthday],
+        provider = row[UsersTable.provider],
+        providerId = row[UsersTable.providerId]
     )
-
-    override suspend fun findByUsername(username: String): User? = dbQuery {
-        UsersTable.select { UsersTable.username eq username }
-            .map(::toUser)
-            .firstOrNull()
-    }
 
     override suspend fun findByEmail(email: String): User? = dbQuery {
         UsersTable.select { UsersTable.email eq email }
@@ -60,31 +65,55 @@ class AuthRepositoryImpl : AuthRepository {
             .singleOrNull()
     }
 
+    override suspend fun findByProviderId(providerId: String): User? = dbQuery {
+        UsersTable.select { (UsersTable.provider eq "google") and (UsersTable.providerId eq providerId) }
+            .map(::toUser)
+            .singleOrNull()
+    }
+
     override suspend fun findByUsernameAndDiscriminator(username: String, discriminator: Int): User? = dbQuery {
         UsersTable.select { (UsersTable.username eq username) and (UsersTable.discriminator eq discriminator) }
             .map(::toUser)
             .singleOrNull()
     }
 
-    override suspend fun createUser(email: String, username: String, passwordHash: String, birthday: LocalDate, discriminator: Int): User? = dbQuery {
-        val insertStatement = UsersTable.insert {
+    override suspend fun createUser(
+        email: String,
+        username: String,
+        passwordHash: String?,
+        birthday: LocalDate,
+        discriminator: Int,
+        provider: String,
+        providerId: String?
+    ): User? = dbQuery {
+        val insert = UsersTable.insert {
             it[UsersTable.email] = email
             it[UsersTable.username] = username
             it[UsersTable.passwordHash] = passwordHash
             it[UsersTable.birthday] = birthday
             it[UsersTable.discriminator] = discriminator
+            it[UsersTable.provider] = provider
+            it[UsersTable.providerId] = providerId
         }
-        insertStatement.resultedValues?.singleOrNull()?.let(::toUser)
+        insert.resultedValues?.singleOrNull()?.let(::toUser)
     }
 
-    override suspend fun updateUser(userId: UUID, email: String?, username: String?, passwordHash: String?, birthday: LocalDate?, avatarUrl: String?): Boolean = dbQuery {
+    override suspend fun linkGoogleAccount(userId: UUID, providerId: String): Boolean = dbQuery {
         UsersTable.update({ UsersTable.id eq userId }) {
-            email?.let { newEmail -> it[UsersTable.email] = newEmail }
-            username?.let { newUsername -> it[UsersTable.username] = newUsername }
-            passwordHash?.let { newPasswordHash -> it[UsersTable.passwordHash] = newPasswordHash }
-            birthday?.let { newBirthday -> it[UsersTable.birthday] = newBirthday }
-            avatarUrl?.let { newAvatarUrl -> it[UsersTable.avatarUrl] = newAvatarUrl }
+            it[UsersTable.provider] = "google"
+            it[UsersTable.providerId] = providerId
         } > 0
     }
 
+    override suspend fun updateRefreshToken(userId: UUID, refreshToken: String?): Boolean = dbQuery {
+        UsersTable.update({ UsersTable.id eq userId }) {
+            it[UsersTable.refreshToken] = refreshToken
+        } > 0
+    }
+
+    override suspend fun findUserByRefreshToken(refreshToken: String): User? = dbQuery {
+        UsersTable.select { UsersTable.refreshToken eq refreshToken }
+            .map(::toUser)
+            .singleOrNull()
+    }
 }

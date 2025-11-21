@@ -12,30 +12,40 @@ data class RegisterRequest(
 
 @Serializable
 data class LoginRequest(
-    val email: String, 
+    val email: String,
     val password: String
 )
 
 @Serializable
-data class AuthResponse(
-    val token: String
+data class RefreshRequest(
+    val refreshToken: String
 )
 
 @Serializable
-data class UpdateUserRequest(
-    val email: String? = null,
-    val username: String? = null,
-    val password: String? = null,
-    val birthday: String? = null,
-    val avatarUrl: String? = null
-)
+data class GoogleLoginRequest(val idToken: String)
 
 @Serializable
-data class UserProfileResponse(
-    val id: String,
-    val email: String,
+data class CompleteGoogleRegistrationRequest(
+    val idToken: String,
     val username: String,
-    val discriminator: Int,
-    val avatarUrl: String?,
     val birthday: String
 )
+
+// --- Response Models ---
+
+@Serializable
+data class AuthResponse(
+    val accessToken: String,
+    val refreshToken: String
+)
+
+@Serializable
+data class GoogleRegistrationInfo(val email: String, val suggestedUsername: String)
+
+
+// --- Service Logic Models ---
+
+sealed class GoogleLoginResult {
+    data class Success(val authResponse: AuthResponse) : GoogleLoginResult()
+    data class RegistrationRequired(val info: GoogleRegistrationInfo) : GoogleLoginResult()
+}

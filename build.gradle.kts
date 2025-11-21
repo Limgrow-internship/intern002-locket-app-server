@@ -29,6 +29,7 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.server.call.logging)
     implementation(libs.logback.classic)
+    implementation("io.ktor:ktor-server-status-pages:2.3.12") // Thêm dòng này
 
     // --- Exposed ORM ---
     implementation("org.jetbrains.exposed:exposed-core:0.41.1")

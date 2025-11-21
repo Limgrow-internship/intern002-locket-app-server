@@ -1,9 +1,11 @@
 package com.intern002.locketapp.features.auth
 
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import com.intern002.locketapp.core.security.TokenClaim
 import com.intern002.locketapp.core.security.TokenConfig
 import com.intern002.locketapp.core.security.TokenProvider
-import com.intern002.locketapp.core.utils.* // Import all custom exceptions
+import com.intern002.locketapp.core.utils.*
 import kotlinx.datetime.LocalDate
 import java.util.UUID
 import kotlin.random.Random
@@ -14,161 +16,97 @@ class AuthService(
     private val hashing: Hashing
 ) {
 
-    suspend fun register(request: RegisterRequest): AuthResponse {
-        if (authRepository.findByEmail(request.email) != null) {
-            throw EmailAlreadyExistsException()
-        }
-
-        val birthday = try {
-            LocalDate.parse(request.birthday)
-        } catch (e: Exception) {
-            throw InvalidDateFormatException()
-        }
-
-        val discriminator = generateUniqueDiscriminator(request.username)
-
-        val hashedPassword = hashing.hash(request.password)
-
-        val user = authRepository.createUser(request.email, request.username, hashedPassword, birthday, discriminator)
-            ?: throw CreateUserFailedException()
-
-        val token = generateToken(user.id.toString())
-
-        return AuthResponse(token)
+    suspend fun checkEmailExists(email: String): Boolean {
+        return authRepository.findByEmail(email) != null
     }
 
-    private suspend fun generateUniqueDiscriminator(username: String): Int {
-        var discriminator: Int
-        var attempts = 0
-        val maxAttempts = 100
-
-        do {
-            discriminator = Random.nextInt(1000, 10000)
-            val existingUser = authRepository.findByUsernameAndDiscriminator(username, discriminator)
-            attempts++
-        } while (existingUser != null && attempts < maxAttempts)
-
-        if (attempts >= maxAttempts) {
-            throw UniqueTagGenerationException()
-        }
-
-        return discriminator
+    suspend fun register(request: RegisterRequest): AuthResponse {
+        if (authRepository.findByEmail(request.email) != null) throw EmailAlreadyExistsException()
+        val birthday = try { LocalDate.parse(request.birthday) } catch (e: Exception) { throw InvalidDateFormatException() }
+        val discriminator = generateUniqueDiscriminator(request.username)
+        val passwordHash = hashing.hash(request.password)
+        val user = authRepository.createUser(request.email, request.username, passwordHash, birthday, discriminator, "email", null) ?: throw CreateUserFailedException()
+        return generateAndSaveTokens(user)
     }
 
     suspend fun login(request: LoginRequest): AuthResponse {
-        val user = authRepository.findByEmail(request.email)
-            ?: throw InvalidCredentialsException()
-
-        val isPasswordCorrect = hashing.verify(request.password, user.passwordHash)
-        if (!isPasswordCorrect) {
-            throw InvalidCredentialsException()
-        }
-
-        val token = generateToken(user.id.toString())
-
-        return AuthResponse(token)
+        val user = authRepository.findByEmail(request.email) ?: throw InvalidCredentialsException()
+        if (user.provider != "email") throw InvalidCredentialsException("Use ${user.provider} to login.")
+        val passwordHash = user.passwordHash ?: throw InvalidCredentialsException()
+        if (!hashing.verify(request.password, passwordHash)) throw InvalidCredentialsException()
+        return generateAndSaveTokens(user)
     }
 
-    suspend fun getUserProfile(userId: String): UserProfileResponse {
-        val uuid = try {
-            UUID.fromString(userId)
-        } catch (e: IllegalArgumentException) {
-            throw InvalidUserIdFormatException()
+    suspend fun handleGoogleLogin(idToken: String): GoogleLoginResult {
+        val decodedToken = verifyGoogleToken(idToken)
+        authRepository.findByProviderId(decodedToken.uid)?.let { return GoogleLoginResult.Success(generateAndSaveTokens(it)) }
+        val email = decodedToken.email ?: throw GoogleTokenInvalidException("Email not found in token.")
+        authRepository.findByEmail(email)?.let {
+            authRepository.linkGoogleAccount(it.id, decodedToken.uid)
+            return GoogleLoginResult.Success(generateAndSaveTokens(it))
         }
-
-        val user = authRepository.findById(uuid) ?: throw UserNotFoundException()
-
-        return UserProfileResponse(
-            id = user.id.toString(),
-            email = user.email,
-            username = user.username,
-            discriminator = user.discriminator,
-            avatarUrl = user.avatarUrl,
-            birthday = user.birthday.toString()
-        )
+        return GoogleLoginResult.RegistrationRequired(GoogleRegistrationInfo(email = email, suggestedUsername = decodedToken.name ?: email.substringBefore('@')))
     }
 
-    suspend fun updateUser(userId: String, request: UpdateUserRequest): UserProfileResponse {
-        val uuid = try {
-            UUID.fromString(userId)
-        } catch (e: IllegalArgumentException) {
-            throw InvalidUserIdFormatException()
-        }
-
-        val currentUser = authRepository.findById(uuid)
-            ?: throw UserNotFoundException()
-
-        val newEmail = request.email?.let {
-            if (it != currentUser.email) {
-                if (authRepository.findByEmail(it) != null) {
-                    throw EmailAlreadyExistsException()
-                }
-                it
-            } else {
-                null
-            }
-        }
-
-        val newUsername = request.username?.let {
-            if (it != currentUser.username) {
-                val existingUserWithNewNameTag = authRepository.findByUsernameAndDiscriminator(it, currentUser.discriminator)
-                if (existingUserWithNewNameTag != null) {
-                    throw UsernameAlreadyTakenException(it)
-                }
-                it
-            } else null
-        }
-
-        val newPasswordHash = request.password?.let { hashing.hash(it) }
-
-        val newBirthday = request.birthday?.let {
-            try {
-                LocalDate.parse(it)
-            } catch (e: Exception) {
-                throw InvalidDateFormatException()
-            }
-        }
-
-        val somethingToUpdate = newEmail != null || newUsername != null || newPasswordHash != null || newBirthday != null || request.avatarUrl != null
-
-        if (somethingToUpdate) {
-            val updated = authRepository.updateUser(
-                userId = uuid,
-                email = newEmail,
-                username = newUsername,
-                passwordHash = newPasswordHash,
-                birthday = newBirthday,
-                avatarUrl = request.avatarUrl
-            )
-            if (!updated) {
-                throw UpdateUserFailedException()
-            }
-        }
-
-        val updatedUser = authRepository.findById(uuid) ?: throw UserNotFoundException()
-
-        return UserProfileResponse(
-            id = updatedUser.id.toString(),
-            email = updatedUser.email,
-            username = updatedUser.username,
-            discriminator = updatedUser.discriminator,
-            avatarUrl = updatedUser.avatarUrl,
-            birthday = updatedUser.birthday.toString()
-        )
+    suspend fun completeGoogleRegistration(request: CompleteGoogleRegistrationRequest): AuthResponse {
+        val decodedToken = verifyGoogleToken(request.idToken)
+        if (authRepository.findByProviderId(decodedToken.uid) != null) throw UserAlreadyExistsException()
+        if (authRepository.findByEmail(decodedToken.email) != null) throw EmailAlreadyExistsException()
+        val birthday = try { LocalDate.parse(request.birthday) } catch (e: Exception) { throw InvalidDateFormatException() }
+        val discriminator = generateUniqueDiscriminator(request.username)
+        val newUser = authRepository.createUser(decodedToken.email, request.username, null, birthday, discriminator, "google", decodedToken.uid) ?: throw CreateUserFailedException()
+        return generateAndSaveTokens(newUser)
     }
 
+    suspend fun refreshToken(oldRefreshToken: String): AuthResponse {
+        val user = authRepository.findUserByRefreshToken(oldRefreshToken)
+            ?: throw InvalidCredentialsException("Invalid refresh token.")
+        val newAccessToken = generateAccessToken(user.id.toString())
+        val newRefreshToken = generateRefreshToken()
+        authRepository.updateRefreshToken(user.id, newRefreshToken)
+        return AuthResponse(newAccessToken, newRefreshToken)
+    }
 
-    private fun generateToken(userId: String): String {
+    suspend fun logout(userId: UUID) {
+        authRepository.updateRefreshToken(userId, null)
+    }
+
+    private suspend fun generateAndSaveTokens(user: User): AuthResponse {
+        val accessToken = generateAccessToken(user.id.toString())
+        val refreshToken = generateRefreshToken()
+        authRepository.updateRefreshToken(user.id, refreshToken)
+        return AuthResponse(accessToken, refreshToken)
+    }
+
+    private fun verifyGoogleToken(idToken: String): com.google.firebase.auth.FirebaseToken {
+        return try { FirebaseAuth.getInstance().verifyIdToken(idToken) } 
+        catch (e: FirebaseAuthException) { throw GoogleTokenInvalidException() }
+    }
+
+    private suspend fun generateUniqueDiscriminator(username: String): Int {
+        var disc: Int
+        var attempts = 0
+        do {
+            disc = Random.nextInt(1000, 9999)
+            attempts++
+        } while (authRepository.findByUsernameAndDiscriminator(username, disc) != null && attempts < 100)
+        if (attempts >= 100) throw UniqueTagGenerationException()
+        return disc
+    }
+
+    private fun generateAccessToken(userId: String): String {
         val config = TokenConfig(
             issuer = System.getenv("JWT_ISSUER") ?: "com.intern002.locketapp",
             audience = System.getenv("JWT_AUDIENCE") ?: "users",
-            expiresIn = 365L * 24L * 60L * 60L * 1000L,
+            expiresIn = 15 * 60 * 1000L,
             secret = System.getenv("JWT_SECRET") ?: "default-secret-for-development-only"
         )
+        return tokenProvider.generateToken(config, TokenClaim("userId", userId))
+    }
 
-        return tokenProvider.generateToken(
-            config,
-            TokenClaim("userId", userId)
-        )
+    private fun generateRefreshToken(): String {
+        val timestamp = System.currentTimeMillis()
+        val randomPart = UUID.randomUUID().toString() + UUID.randomUUID().toString()
+        return "$timestamp:$randomPart"
     }
 }
