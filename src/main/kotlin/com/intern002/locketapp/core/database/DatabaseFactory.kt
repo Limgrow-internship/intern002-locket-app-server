@@ -13,6 +13,7 @@ import kotlin.system.exitProcess
 
 object DatabaseFactory {
     private val logger = LoggerFactory.getLogger("DatabaseFactory")
+    private var dataSource: HikariDataSource? = null
 
     fun init(
         databaseUrl: String,
@@ -21,8 +22,8 @@ object DatabaseFactory {
     ) {
         logger.info("Initializing DB connection...")
         try {
-            val dataSource = createHikariDataSource(databaseUrl, databaseUser, databasePassword)
-            Database.connect(dataSource)
+            dataSource = createHikariDataSource(databaseUrl, databaseUser, databasePassword)
+            Database.connect(dataSource!!)
             logger.info("Connected to Supabase PostgreSQL successfully!")
 
             transaction {
@@ -43,8 +44,13 @@ object DatabaseFactory {
             }
         } catch (e: Exception) {
             logger.error("FATAL: Failed to connect or initialize DB schema. Exiting application.", e)
-            exitProcess(1) // Stop the application
+            exitProcess(1)
         }
+    }
+
+    fun close() {
+        logger.info("Closing database connection pool.")
+        dataSource?.close()
     }
 
     private fun createHikariDataSource(

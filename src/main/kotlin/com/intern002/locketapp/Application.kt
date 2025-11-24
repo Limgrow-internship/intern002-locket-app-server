@@ -35,6 +35,10 @@ fun Application.module() {
 
     logger.info("Database connected successfully!")
 
+    monitor.subscribe(ApplicationStopping) {
+        DatabaseFactory.close()
+    }
+
     configureMonitoring()
     configureDependencyInjection()
     configureSecurity()

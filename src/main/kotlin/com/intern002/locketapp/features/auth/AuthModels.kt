@@ -43,7 +43,6 @@ data class AuthResponse(
 data class GoogleRegistrationInfo(val email: String, val suggestedUsername: String)
 
 
-// --- Service Logic Models ---
 
 sealed class GoogleLoginResult {
     data class Success(val authResponse: AuthResponse) : GoogleLoginResult()

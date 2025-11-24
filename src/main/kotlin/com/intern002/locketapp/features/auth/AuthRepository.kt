@@ -28,7 +28,7 @@ interface AuthRepository {
         email: String,
         username: String,
         passwordHash: String?,
-        birthday: LocalDate, //
+        birthday: LocalDate,
         discriminator: Int,
         provider: String,
         providerId: String?

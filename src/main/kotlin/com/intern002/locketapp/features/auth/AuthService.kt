@@ -7,6 +7,7 @@ import com.intern002.locketapp.core.security.TokenConfig
 import com.intern002.locketapp.core.security.TokenProvider
 import com.intern002.locketapp.core.utils.*
 import kotlinx.datetime.LocalDate
+import org.slf4j.LoggerFactory
 import java.util.UUID
 import kotlin.random.Random
 
@@ -15,6 +16,7 @@ class AuthService(
     private val tokenProvider: TokenProvider,
     private val hashing: Hashing
 ) {
+    private val logger = LoggerFactory.getLogger(AuthService::class.java)
 
     suspend fun checkEmailExists(email: String): Boolean {
         return authRepository.findByEmail(email) != null
@@ -79,8 +81,12 @@ class AuthService(
     }
 
     private fun verifyGoogleToken(idToken: String): com.google.firebase.auth.FirebaseToken {
-        return try { FirebaseAuth.getInstance().verifyIdToken(idToken) } 
-        catch (e: FirebaseAuthException) { throw GoogleTokenInvalidException() }
+        return try {
+            FirebaseAuth.getInstance().verifyIdToken(idToken)
+        } catch (e: FirebaseAuthException) {
+            logger.error("Firebase token verification failed: ${e.message}", e)
+            throw GoogleTokenInvalidException()
+        }
     }
 
     private suspend fun generateUniqueDiscriminator(username: String): Int {
@@ -98,7 +104,7 @@ class AuthService(
         val config = TokenConfig(
             issuer = System.getenv("JWT_ISSUER") ?: "com.intern002.locketapp",
             audience = System.getenv("JWT_AUDIENCE") ?: "users",
-            expiresIn = 15 * 60 * 1000L,
+            expiresIn = 40 * 60 * 1000L,
             secret = System.getenv("JWT_SECRET") ?: "default-secret-for-development-only"
         )
         return tokenProvider.generateToken(config, TokenClaim("userId", userId))

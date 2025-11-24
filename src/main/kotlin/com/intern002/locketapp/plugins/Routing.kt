@@ -2,6 +2,8 @@ package com.intern002.locketapp.plugins
 
 import com.intern002.locketapp.features.auth.AuthService
 import com.intern002.locketapp.features.auth.authRoutes
+import com.intern002.locketapp.features.friends.FriendshipService
+import com.intern002.locketapp.features.friends.friendshipRoutes
 import com.intern002.locketapp.features.users.UserService
 import com.intern002.locketapp.features.users.userRoutes
 import io.ktor.http.HttpStatusCode
@@ -15,6 +17,7 @@ fun Application.configureRouting() {
 
     val authService: AuthService by inject()
     val userService: UserService by inject()
+    val friendshipService: FriendshipService by inject() // Use FriendshipService
 
     routing {
         get("/") {
@@ -25,6 +28,9 @@ fun Application.configureRouting() {
         userRoutes(userService, authService)
 
         authenticate {
+            // All friendship routes require a user to be logged in.
+            friendshipRoutes(friendshipService) // Pass the service
+
             get("/test/me") {
                 val principal = call.principal<UserIdPrincipal>()
 
