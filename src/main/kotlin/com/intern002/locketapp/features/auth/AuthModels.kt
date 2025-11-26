@@ -31,7 +31,6 @@ data class CompleteGoogleRegistrationRequest(
     val birthday: String
 )
 
-// --- Response Models ---
 
 @Serializable
 data class AuthResponse(

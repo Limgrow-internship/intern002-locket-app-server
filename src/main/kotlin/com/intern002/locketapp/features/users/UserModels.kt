@@ -20,3 +20,13 @@ data class UserProfileResponse(
     val avatarUrl: String?,
     val birthday: String
 )
+
+@Serializable
+data class VerifyPasswordRequest(
+    val password: String
+)
+
+@Serializable
+data class VerifyPasswordResponse(
+    val isCorrect: Boolean
+)

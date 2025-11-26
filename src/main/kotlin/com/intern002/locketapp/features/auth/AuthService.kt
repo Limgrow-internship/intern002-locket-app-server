@@ -33,8 +33,9 @@ class AuthService(
 
     suspend fun login(request: LoginRequest): AuthResponse {
         val user = authRepository.findByEmail(request.email) ?: throw InvalidCredentialsException()
-        if (user.provider != "email") throw InvalidCredentialsException("Use ${user.provider} to login.")
-        val passwordHash = user.passwordHash ?: throw InvalidCredentialsException()
+        val passwordHash = user.passwordHash ?: run {
+            throw InvalidCredentialsException("Use ${user.provider} to login.")
+        }
         if (!hashing.verify(request.password, passwordHash)) throw InvalidCredentialsException()
         return generateAndSaveTokens(user)
     }

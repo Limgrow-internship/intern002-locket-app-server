@@ -9,6 +9,7 @@ class InvalidCredentialsException(message: String = "Invalid email or password."
 class UserNotFoundException : ServiceException(HttpStatusCode.NotFound, "User not found.")
 class RefreshTokenExpiredException : ServiceException(HttpStatusCode.Unauthorized, "Refresh token expired. Please login again.")
 class RefreshTokenMissingException(message: String = "Refresh token is missing or malformed.") : ServiceException(HttpStatusCode.Unauthorized, message)
+class WrongPasswordException: ServiceException(HttpStatusCode.Unauthorized, "The password you entered is incorrect.")
 
 // (400)
 class EmailAlreadyExistsException : ServiceException(HttpStatusCode.BadRequest, "A user with this email already exists.")

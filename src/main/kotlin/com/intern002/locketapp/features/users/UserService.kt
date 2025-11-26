@@ -27,6 +27,15 @@ class UserService(
         )
     }
 
+    suspend fun verifyPassword(userId: String, request: VerifyPasswordRequest): VerifyPasswordResponse {
+        val uuid = UUID.fromString(userId)
+        val user = authRepository.findById(uuid) ?: throw UserNotFoundException()
+
+        val isCorrect = user.passwordHash != null && hashing.verify(request.password, user.passwordHash!!)
+
+        return VerifyPasswordResponse(isCorrect)
+    }
+
     suspend fun updateUser(userId: String, request: UpdateUserRequest): UserProfileResponse {
         val uuid = UUID.fromString(userId)
         val currentUser = authRepository.findById(uuid) ?: throw UserNotFoundException()

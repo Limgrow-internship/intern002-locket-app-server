@@ -52,7 +52,7 @@ fun Route.friendshipRoutes(friendshipService: FriendshipService) {
                 call.respond(statusCode, GenericResponse(false, it.message ?: "An error occurred"))
             }
         }
-        
+
         get("/requests/pending") {
             val principal = call.principal<UserIdPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
             val userId = principal.userId

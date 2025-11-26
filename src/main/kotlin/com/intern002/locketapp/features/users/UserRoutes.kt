@@ -25,6 +25,13 @@ fun Route.userRoutes(userService: UserService, authService: AuthService) {
             call.respond(HttpStatusCode.OK, updated)
         }
 
+        post("/users/verify-password") {
+            val principal = call.principal<UserIdPrincipal>()!!
+            val request = call.receive<VerifyPasswordRequest>()
+            val response = userService.verifyPassword(principal.userId.toString(), request)
+            call.respond(HttpStatusCode.OK, response)
+        }
+
         post("/users/logout") {
             val principal = call.principal<UserIdPrincipal>()!!
             authService.logout(principal.userId)

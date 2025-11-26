@@ -10,7 +10,7 @@ data class User(
     val id: UUID,
     val email: String,
     val username: String,
-    val passwordHash: String,
+    val passwordHash: String?,
     val discriminator: Int,
     val avatarUrl: String?,
     val birthday: LocalDate
@@ -31,7 +31,7 @@ class UserRepositoryImpl : UserRepository {
         id = row[UsersTable.id],
         email = row[UsersTable.email],
         username = row[UsersTable.username],
-        passwordHash = row[UsersTable.passwordHash] ?: "",
+        passwordHash = row[UsersTable.passwordHash],
         discriminator = row[UsersTable.discriminator],
         avatarUrl = row[UsersTable.avatarUrl],
         birthday = row[UsersTable.birthday]
