@@ -10,6 +10,9 @@ import com.intern002.locketapp.features.auth.AuthService
 import com.intern002.locketapp.features.friends.FriendshipRepository
 import com.intern002.locketapp.features.friends.FriendshipRepositoryImpl
 import com.intern002.locketapp.features.friends.FriendshipService
+import com.intern002.locketapp.features.posts.PostRepository
+import com.intern002.locketapp.features.posts.PostRepositoryImpl
+import com.intern002.locketapp.features.posts.PostService
 import com.intern002.locketapp.features.users.UserRepository
 import com.intern002.locketapp.features.users.UserRepositoryImpl
 import com.intern002.locketapp.features.users.UserService
@@ -30,4 +33,7 @@ val appModule = module {
     // Friendships
     single<FriendshipRepository> { FriendshipRepositoryImpl() }
     single { FriendshipService(get()) } // Added FriendshipService
+
+    single<PostRepository> { PostRepositoryImpl() }
+    single { PostService(get()) }
 }

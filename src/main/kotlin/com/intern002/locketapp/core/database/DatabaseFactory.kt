@@ -57,7 +57,7 @@ object DatabaseFactory {
         url: String,
         user: String,
         password: String,
-        maxPoolSize: Int = 10,
+        maxPoolSize: Int = 1,
     ): HikariDataSource {
         val config =
             HikariConfig().apply {

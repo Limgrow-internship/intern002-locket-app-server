@@ -4,9 +4,10 @@ import com.intern002.locketapp.features.auth.AuthService
 import com.intern002.locketapp.features.auth.authRoutes
 import com.intern002.locketapp.features.friends.FriendshipService
 import com.intern002.locketapp.features.friends.friendshipRoutes
+import com.intern002.locketapp.features.posts.postRouting
 import com.intern002.locketapp.features.users.UserService
 import com.intern002.locketapp.features.users.userRoutes
-import io.ktor.http.HttpStatusCode
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
@@ -26,6 +27,7 @@ fun Application.configureRouting() {
 
         authRoutes(authService)
         userRoutes(userService, authService)
+        postRouting()
 
         authenticate {
             // All friendship routes require a user to be logged in.
