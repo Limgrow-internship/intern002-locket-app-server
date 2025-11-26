@@ -39,4 +39,9 @@ interface FriendshipRepository {
      * Gets all pending friend requests for a specific user.
      */
     suspend fun getPendingRequests(addresseeId: UUID): List<PendingFriendRequest>
+
+    /**
+     * Gets all sent friend requests from a specific user.
+     */
+    suspend fun getSentRequests(requesterId: UUID): List<SentFriendRequest> // Added this
 }

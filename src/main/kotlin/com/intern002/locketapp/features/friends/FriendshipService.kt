@@ -37,4 +37,19 @@ class FriendshipService(private val repository: FriendshipRepository) {
     suspend fun getPendingRequestsForUser(userId: UUID): List<PendingFriendRequest> {
         return repository.getPendingRequests(userId)
     }
+
+    suspend fun getSentRequestsForUser(userId: UUID): List<SentFriendRequestResponse> { // Changed return type
+        val sentRequests = repository.getSentRequests(userId)
+        return sentRequests.map {
+            SentFriendRequestResponse(
+                friendshipId = it.friendshipId.toString(),
+                addressee = FriendUserResponse(
+                    id = it.addressee.id.toString(),
+                    username = it.addressee.username,
+                    discriminator = it.addressee.discriminator,
+                    avatarUrl = it.addressee.avatarUrl
+                )
+            )
+        }
+    }
 }

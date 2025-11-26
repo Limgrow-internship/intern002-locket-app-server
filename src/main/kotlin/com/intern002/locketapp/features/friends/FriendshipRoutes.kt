@@ -16,6 +16,21 @@ data class FriendRequest(val username: String, val discriminator: Int)
 @Serializable
 data class GenericResponse(val success: Boolean, val message: String)
 
+// DTOs for API responses
+@Serializable
+data class FriendUserResponse(
+    val id: String,
+    val username: String,
+    val discriminator: Int,
+    val avatarUrl: String?
+)
+
+@Serializable
+data class SentFriendRequestResponse(
+    val friendshipId: String,
+    val addressee: FriendUserResponse
+)
+
 fun Route.friendshipRoutes(friendshipService: FriendshipService) {
     route("/friends") {
         get("/search") {
@@ -51,6 +66,14 @@ fun Route.friendshipRoutes(friendshipService: FriendshipService) {
                 }
                 call.respond(statusCode, GenericResponse(false, it.message ?: "An error occurred"))
             }
+        }
+
+        get("/requests/sent") {
+            val principal = call.principal<UserIdPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+            val userId = principal.userId
+
+            val sentRequests = friendshipService.getSentRequestsForUser(userId)
+            call.respond(HttpStatusCode.OK, sentRequests)
         }
 
         get("/requests/pending") {

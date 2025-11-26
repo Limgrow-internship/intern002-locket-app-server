@@ -9,6 +9,12 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.kotlin.datetime.CurrentTimestamp
 import java.util.*
 
+// NOTE: This should be in a dedicated models file
+data class SentFriendRequest(
+    val friendshipId: UUID,
+    val addressee: User
+)
+
 class FriendshipRepositoryImpl : FriendshipRepository {
 
     override suspend fun findUserByUsernameAndDiscriminator(username: String, discriminator: Int): User? = dbQuery {
@@ -116,6 +122,19 @@ class FriendshipRepositoryImpl : FriendshipRepository {
                 PendingFriendRequest(
                     friendshipId = row[FriendshipsTable.id],
                     requester = rowToUser(row)
+                )
+            }
+    }
+
+    override suspend fun getSentRequests(requesterId: UUID): List<SentFriendRequest> = dbQuery {
+        FriendshipsTable.join(UsersTable, JoinType.INNER, onColumn = FriendshipsTable.addresseeId, otherColumn = UsersTable.id)
+            .select {
+                (FriendshipsTable.requesterId eq requesterId) and (FriendshipsTable.status eq "pending")
+            }
+            .map { row ->
+                SentFriendRequest(
+                    friendshipId = row[FriendshipsTable.id],
+                    addressee = rowToUser(row)
                 )
             }
     }
