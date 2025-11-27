@@ -9,17 +9,16 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.kotlin.datetime.CurrentTimestamp
 import java.util.*
 
-// NOTE: This should be in a dedicated models file
 data class SentFriendRequest(
     val friendshipId: UUID,
-    val addressee: User
+    val addressee: PublicUser
 )
 
 class FriendshipRepositoryImpl : FriendshipRepository {
 
-    override suspend fun findUserByUsernameAndDiscriminator(username: String, discriminator: Int): User? = dbQuery {
+    override suspend fun findUserByUsernameAndDiscriminator(username: String, discriminator: Int): PublicUser? = dbQuery {
         UsersTable.select { (UsersTable.username eq username) and (UsersTable.discriminator eq discriminator) }
-            .map(::rowToUser).singleOrNull()
+            .map(::rowToPublicUser).singleOrNull()
     }
 
     override suspend fun sendFriendRequest(requesterId: UUID, addresseeId: UUID): Friendship? = dbQuery {
@@ -91,6 +90,15 @@ class FriendshipRepositoryImpl : FriendshipRepository {
         updatedRows > 0
     }
 
+    override suspend fun unfriend(userId: UUID, friendId: UUID): Boolean = dbQuery {
+        val deletedRows = FriendshipsTable.deleteWhere {
+            (((requesterId eq userId) and (addresseeId eq friendId)) or
+                    ((requesterId eq friendId) and (addresseeId eq userId))) and
+                    (status eq "accepted")
+        }
+        deletedRows > 0
+    }
+
     override suspend fun getFriendshipStatus(userId1: UUID, userId2: UUID): Friendship? = dbQuery {
         FriendshipsTable.select {
             ((FriendshipsTable.requesterId eq userId1) and (FriendshipsTable.addresseeId eq userId2)) or
@@ -98,7 +106,7 @@ class FriendshipRepositoryImpl : FriendshipRepository {
         }.map(::rowToFriendship).singleOrNull()
     }
 
-    override suspend fun getFriends(userId: UUID): List<User> = dbQuery {
+    override suspend fun getFriends(userId: UUID): List<PublicUser> = dbQuery {
         val friendIds = FriendshipsTable.select {
             ((FriendshipsTable.requesterId eq userId) or (FriendshipsTable.addresseeId eq userId)) and
                     (FriendshipsTable.status eq "accepted")
@@ -110,7 +118,7 @@ class FriendshipRepositoryImpl : FriendshipRepository {
             return@dbQuery emptyList()
         }
 
-        UsersTable.select { UsersTable.id inList friendIds }.mapNotNull(::rowToUser)
+        UsersTable.select { UsersTable.id inList friendIds }.mapNotNull(::rowToPublicUser)
     }
 
     override suspend fun getPendingRequests(addresseeId: UUID): List<PendingFriendRequest> = dbQuery {
@@ -121,7 +129,7 @@ class FriendshipRepositoryImpl : FriendshipRepository {
             .map { row ->
                 PendingFriendRequest(
                     friendshipId = row[FriendshipsTable.id],
-                    requester = rowToUser(row)
+                    requester = rowToPublicUser(row)
                 )
             }
     }
@@ -134,18 +142,31 @@ class FriendshipRepositoryImpl : FriendshipRepository {
             .map { row ->
                 SentFriendRequest(
                     friendshipId = row[FriendshipsTable.id],
-                    addressee = rowToUser(row)
+                    addressee = rowToPublicUser(row)
                 )
             }
     }
 
-    private fun rowToUser(row: ResultRow): User {
-        return User(
+    override suspend fun getFriendSuggestions(userId: UUID, limit: Int): List<PublicUser> = dbQuery {
+        val friendIds = FriendshipsTable.select {
+            ((FriendshipsTable.requesterId eq userId) or (FriendshipsTable.addresseeId eq userId)) and
+                    (FriendshipsTable.status eq "accepted")
+        }.map { row ->
+            if (row[FriendshipsTable.requesterId] == userId) row[FriendshipsTable.addresseeId] else row[FriendshipsTable.requesterId]
+        }
+
+        UsersTable.select {
+            (UsersTable.id notInList friendIds) and (UsersTable.id neq userId)
+        }
+        .limit(limit)
+        .map(::rowToPublicUser)
+    }
+
+    private fun rowToPublicUser(row: ResultRow): PublicUser {
+        return PublicUser(
             id = row[UsersTable.id],
-            email = row[UsersTable.email],
             username = row[UsersTable.username],
             discriminator = row[UsersTable.discriminator],
-            birthday = row[UsersTable.birthday].toString(),
             avatarUrl = row[UsersTable.avatarUrl]
         )
     }

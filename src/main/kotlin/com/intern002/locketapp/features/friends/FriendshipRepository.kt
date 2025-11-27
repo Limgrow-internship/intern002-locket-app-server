@@ -1,47 +1,37 @@
 package com.intern002.locketapp.features.friends
 
+import com.intern002.locketapp.core.utils.UUIDSerializer
+import kotlinx.serialization.Serializable
 import java.util.UUID
+
+@Serializable
+data class PublicUser(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    val username: String,
+    val discriminator: Int,
+    val avatarUrl: String?
+)
 
 interface FriendshipRepository {
 
-    /**
-     * Creates a new friend request.
-     */
     suspend fun sendFriendRequest(requesterId: UUID, addresseeId: UUID): Friendship?
 
-    /**
-     * Accepts a friend request.
-     * This also creates a new conversation between the users.
-     */
     suspend fun acceptFriendRequest(friendshipId: UUID): Boolean
 
-    /**
-     * Rejects a friend request.
-     */
     suspend fun rejectFriendRequest(friendshipId: UUID): Boolean
 
-    /**
-     * Gets the friendship status between two users.
-     */
+    suspend fun unfriend(userId: UUID, friendId: UUID): Boolean
+
     suspend fun getFriendshipStatus(userId1: UUID, userId2: UUID): Friendship?
 
-    /**
-     * Gets a list of a user's friends (accepted friendships).
-     */
-    suspend fun getFriends(userId: UUID): List<User>
+    suspend fun getFriends(userId: UUID): List<PublicUser>
 
-    /**
-     * Finds a user by their username and discriminator.
-     */
-    suspend fun findUserByUsernameAndDiscriminator(username: String, discriminator: Int): User?
+    suspend fun findUserByUsernameAndDiscriminator(username: String, discriminator: Int): PublicUser?
 
-    /**
-     * Gets all pending friend requests for a specific user.
-     */
     suspend fun getPendingRequests(addresseeId: UUID): List<PendingFriendRequest>
 
-    /**
-     * Gets all sent friend requests from a specific user.
-     */
-    suspend fun getSentRequests(requesterId: UUID): List<SentFriendRequest> // Added this
+    suspend fun getSentRequests(requesterId: UUID): List<SentFriendRequest>
+
+    suspend fun getFriendSuggestions(userId: UUID, limit: Int): List<PublicUser>
 }

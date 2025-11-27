@@ -16,7 +16,6 @@ data class FriendRequest(val username: String, val discriminator: Int)
 @Serializable
 data class GenericResponse(val success: Boolean, val message: String)
 
-// DTOs for API responses
 @Serializable
 data class FriendUserResponse(
     val id: String,
@@ -33,6 +32,14 @@ data class SentFriendRequestResponse(
 
 fun Route.friendshipRoutes(friendshipService: FriendshipService) {
     route("/friends") {
+        get("/suggestions") {
+            val principal = call.principal<UserIdPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+            val userId = principal.userId
+
+            val suggestions = friendshipService.getFriendSuggestions(userId)
+            call.respond(HttpStatusCode.OK, suggestions)
+        }
+
         get("/search") {
             val username = call.request.queryParameters["username"]
             val discriminator = call.request.queryParameters["discriminator"]?.toIntOrNull()
@@ -103,6 +110,20 @@ fun Route.friendshipRoutes(friendshipService: FriendshipService) {
                 call.respond(HttpStatusCode.OK, GenericResponse(true, "Friend request rejected."))
             } else {
                 call.respond(HttpStatusCode.Conflict, GenericResponse(false, "Failed to reject friend request. It might not be pending or doesn't exist."))
+            }
+        }
+
+        delete("/{friendId}") {
+            val principal = call.principal<UserIdPrincipal>() ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+            val userId = principal.userId
+
+            val friendId = call.parameters["friendId"]?.let { UUID.fromString(it) } ?: return@delete call.respond(HttpStatusCode.BadRequest)
+
+            val success = friendshipService.unfriend(userId, friendId)
+            if (success) {
+                call.respond(HttpStatusCode.OK, GenericResponse(true, "Friend removed."))
+            } else {
+                call.respond(HttpStatusCode.NotFound, GenericResponse(false, "Friendship not found."))
             }
         }
 

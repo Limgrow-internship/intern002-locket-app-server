@@ -10,14 +10,11 @@ object FriendshipsTable : Table("friendships") {
 
     val requesterId = uuid("requester_id").references(UsersTable.id, onDelete = ReferenceOption.CASCADE)
     val addresseeId = uuid("addressee_id").references(UsersTable.id, onDelete = ReferenceOption.CASCADE)
-
     val status =
         text("status").default("pending").check {
             it inList listOf("pending", "accepted", "rejected")
         }
 
-    // ... REFERENCES conversations(id) ON DELETE SET NULL
-    // Thêm .uniqueIndex() vì schema của cậu có UNIQUE(conversation_id)
     val conversationId =
         uuid("conversation_id").references(
             ConversationsTable.id,
@@ -29,7 +26,6 @@ object FriendshipsTable : Table("friendships") {
 
     override val primaryKey = PrimaryKey(id)
 
-    // UNIQUE (requester_id, addressee_id)
     init {
         uniqueIndex("friendships_requester_addressee_unique", requesterId, addresseeId)
     }
