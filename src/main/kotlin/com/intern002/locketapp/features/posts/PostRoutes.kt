@@ -2,35 +2,33 @@ package com.intern002.locketapp.features.posts
 
 import io.ktor.http.*
 import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.koin.ktor.ext.inject
+import java.util.*
 
-fun Route.postRouting() {
 
-    val postService: PostService by inject()
+fun Route.postRoutes(postService: PostService) {
 
-    authenticate {
-        route("/posts") {
+    route("/posts") {
 
-            post {
-                val principal = call.principal<JWTPrincipal>()
-                val userId = principal?.payload?.getClaim("uid")?.asString()
-                    ?: return@post call.respond(HttpStatusCode.Unauthorized, "Invalid Token")
+        post {
+            val principal = call.principal<UserIdPrincipal>()
+                ?: return@post call.respond(HttpStatusCode.Unauthorized)
 
-                val request = call.receive<CreatePostRequest>()
+            val userIdString = principal.name
 
-                try {
-                    val response = postService.createPost(userId, request)
-                    call.respond(HttpStatusCode.Created, response)
-                } catch (e: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, e.message ?: "Invalid Request")
-                } catch (e: Exception) {
-                    call.respond(HttpStatusCode.InternalServerError, "Error creating post")
-                }
+            val userId = try {
+                UUID.fromString(userIdString)
+            } catch (e: Exception) {
+                return@post call.respond(HttpStatusCode.BadRequest, "Invalid User ID in token")
             }
+
+            val request = call.receive<CreatePostRequest>()
+
+            val response = postService.createPost(userId, request)
+
+            call.respond(HttpStatusCode.Created, response)
         }
     }
 }

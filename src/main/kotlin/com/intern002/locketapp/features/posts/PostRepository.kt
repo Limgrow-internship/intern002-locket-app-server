@@ -17,35 +17,41 @@ data class Post(
     val createdAt: String
 )
 
+
 interface PostRepository {
     suspend fun createPost(userId: UUID, request: CreatePostRequest): Post?
+    suspend fun getPostById(postId: UUID): Post?
 }
+
 
 class PostRepositoryImpl : PostRepository {
 
-    override suspend fun createPost(userId: UUID, request: CreatePostRequest): Post? {
-        return dbQuery {
-            val insertStatement = PostsTable.insert {
-                it[authorId] = userId
-                it[mediaUrl] = request.mediaUrl
-                it[mediaType] = request.mediaType
-                it[caption] = request.caption
-            }
+    private fun toPost(row: ResultRow): Post = Post(
+        id = row[PostsTable.id],
+        authorId = row[PostsTable.authorId],
+        mediaUrl = row[PostsTable.mediaUrl],
+        mediaType = row[PostsTable.mediaType],
+        caption = row[PostsTable.caption],
+        createdAt = row[PostsTable.createdAt].toString()
+    )
 
-            val newId = insertStatement[PostsTable.id]
-
-            PostsTable.select { PostsTable.id eq newId }
-                .map { it.toPost() }
-                .singleOrNull()
+    override suspend fun createPost(userId: UUID, request: CreatePostRequest): Post? = dbQuery {
+        val insertStatement = PostsTable.insert {
+            it[authorId] = userId
+            it[mediaUrl] = request.mediaUrl
+            it[mediaType] = request.mediaType
+            it[caption] = request.caption
         }
+        val newId = insertStatement[PostsTable.id]
+
+        PostsTable.select { PostsTable.id eq newId }
+            .map(::toPost)
+            .singleOrNull()
     }
 
-    private fun ResultRow.toPost(): Post = Post(
-        id = this[PostsTable.id],
-        authorId = this[PostsTable.authorId],
-        mediaUrl = this[PostsTable.mediaUrl],
-        mediaType = this[PostsTable.mediaType],
-        caption = this[PostsTable.caption],
-        createdAt = this[PostsTable.createdAt].toString()
-    )
+    override suspend fun getPostById(postId: UUID): Post? = dbQuery {
+        PostsTable.select { PostsTable.id eq postId }
+            .map(::toPost)
+            .singleOrNull()
+    }
 }

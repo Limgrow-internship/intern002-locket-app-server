@@ -4,8 +4,9 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.auth.UserIdPrincipal
 import io.ktor.server.auth.jwt.*
-import java.util.UUID
+import java.util.*
 
 data class UserIdPrincipal(val userId: UUID)
 
@@ -25,14 +26,12 @@ fun Application.configureSecurity() {
                     .build()
             )
             validate { credential ->
-                val userIdString = credential.payload.getClaim("userId").asString()
+                val userId = credential.payload.getClaim("userId").asString()
 
-                if (userIdString != null) {
-                    try {
-                        UserIdPrincipal(UUID.fromString(userIdString))
-                    } catch (e: IllegalArgumentException) {
-                        null
-                    }
+                if (credential.payload.audience.contains(jwtAudience) && !userId.isNullOrBlank()) {
+
+                    UserIdPrincipal(name = userId)
+
                 } else {
                     null
                 }
