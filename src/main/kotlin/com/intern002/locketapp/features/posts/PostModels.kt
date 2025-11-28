@@ -1,12 +1,20 @@
 package com.intern002.locketapp.features.posts
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class CreatePostRequest(
+    @SerialName("media_url")
     val mediaUrl: String,
+    @SerialName("media_type")
     val mediaType: String,
-    val caption: String? = null
+
+    @SerialName("caption")
+    val caption: String?,
+
+    @SerialName("recipient_ids")
+    val recipientIds: List<String>
 )
 
 @Serializable

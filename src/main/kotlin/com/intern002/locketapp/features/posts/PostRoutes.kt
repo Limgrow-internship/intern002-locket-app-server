@@ -1,5 +1,6 @@
 package com.intern002.locketapp.features.posts
 
+import com.intern002.locketapp.plugins.UserIdPrincipal
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
@@ -16,19 +17,27 @@ fun Route.postRoutes(postService: PostService) {
             val principal = call.principal<UserIdPrincipal>()
                 ?: return@post call.respond(HttpStatusCode.Unauthorized)
 
-            val userIdString = principal.name
+            val userIdString = principal.userId.toString()
+
+            if (userIdString.isBlank()) {
+                return@post call.respond(HttpStatusCode.Unauthorized, "Token is missing userId claim")
+            }
 
             val userId = try {
                 UUID.fromString(userIdString)
             } catch (e: Exception) {
-                return@post call.respond(HttpStatusCode.BadRequest, "Invalid User ID in token")
+                return@post call.respond(HttpStatusCode.BadRequest, "Invalid User ID format in Token")
             }
 
-            val request = call.receive<CreatePostRequest>()
+            try {
+                val request = call.receive<CreatePostRequest>()
+                val response = postService.createPost(userId, request)
+                call.respond(HttpStatusCode.Created, response)
 
-            val response = postService.createPost(userId, request)
-
-            call.respond(HttpStatusCode.Created, response)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                call.respond(HttpStatusCode.InternalServerError, "Failed to create post")
+            }
         }
     }
 }

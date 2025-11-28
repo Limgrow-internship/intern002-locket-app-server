@@ -4,7 +4,6 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
-import io.ktor.server.auth.UserIdPrincipal
 import io.ktor.server.auth.jwt.*
 import java.util.*
 
@@ -26,12 +25,14 @@ fun Application.configureSecurity() {
                     .build()
             )
             validate { credential ->
-                val userId = credential.payload.getClaim("userId").asString()
+                val userIdString = credential.payload.getClaim("userId").asString()
 
-                if (credential.payload.audience.contains(jwtAudience) && !userId.isNullOrBlank()) {
-
-                    UserIdPrincipal(name = userId)
-
+                if (userIdString != null) {
+                    try {
+                        UserIdPrincipal(UUID.fromString(userIdString))
+                    } catch (e: IllegalArgumentException) {
+                        null
+                    }
                 } else {
                     null
                 }
