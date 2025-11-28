@@ -1,8 +1,10 @@
 package com.intern002.locketapp.features.posts
 
 import com.intern002.locketapp.core.database.DatabaseFactory.dbQuery
+import com.intern002.locketapp.core.database.tables.PostRecipientsTable
 import com.intern002.locketapp.core.database.tables.PostsTable
 import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import java.util.*
@@ -44,6 +46,12 @@ class PostRepositoryImpl : PostRepository {
         }
         val newId = insertStatement[PostsTable.id]
 
+        if (request.recipientIds.isNotEmpty()) {
+            PostRecipientsTable.batchInsert(request.recipientIds) { recipientIdString ->
+                this[PostRecipientsTable.postId] = newId
+                this[PostRecipientsTable.recipientId] = UUID.fromString(recipientIdString)
+            }
+        }
         PostsTable.select { PostsTable.id eq newId }
             .map(::toPost)
             .singleOrNull()

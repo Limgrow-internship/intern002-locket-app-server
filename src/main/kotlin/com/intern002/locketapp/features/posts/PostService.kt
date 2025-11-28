@@ -16,7 +16,9 @@ class PostService(private val postRepository: PostRepository) {
         if (request.mediaUrl.isBlank()) {
             throw InvalidPostDataException("Media URL cannot be empty")
         }
-
+        if (request.recipientIds.isEmpty()) {
+            throw InvalidPostDataException("You must select at least one friend to send.")
+        }
         // 2. Gọi Repo
         val post = postRepository.createPost(userId, request)
             ?: throw PostCreationException()
