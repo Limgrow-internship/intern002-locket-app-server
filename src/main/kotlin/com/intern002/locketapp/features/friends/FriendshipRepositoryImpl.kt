@@ -11,7 +11,8 @@ import java.util.*
 
 data class SentFriendRequest(
     val friendshipId: UUID,
-    val addressee: PublicUser
+    val addressee: PublicUser,
+    val status: String
 )
 
 class FriendshipRepositoryImpl : FriendshipRepository {
@@ -129,7 +130,8 @@ class FriendshipRepositoryImpl : FriendshipRepository {
             .map { row ->
                 PendingFriendRequest(
                     friendshipId = row[FriendshipsTable.id],
-                    requester = rowToPublicUser(row)
+                    requester = rowToPublicUser(row),
+                    status = row[FriendshipsTable.status]
                 )
             }
     }
@@ -142,7 +144,8 @@ class FriendshipRepositoryImpl : FriendshipRepository {
             .map { row ->
                 SentFriendRequest(
                     friendshipId = row[FriendshipsTable.id],
-                    addressee = rowToPublicUser(row)
+                    addressee = rowToPublicUser(row),
+                    status = row[FriendshipsTable.status]
                 )
             }
     }

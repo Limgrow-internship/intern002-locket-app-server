@@ -27,7 +27,14 @@ data class FriendUserResponse(
 @Serializable
 data class SentFriendRequestResponse(
     val friendshipId: String,
-    val addressee: FriendUserResponse
+    val addressee: FriendUserResponse,
+    val status: String // Added status
+)
+
+@Serializable
+data class FriendResponse(
+    val user: FriendUserResponse,
+    val status: String
 )
 
 fun Route.friendshipRoutes(friendshipService: FriendshipService) {

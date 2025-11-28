@@ -21,5 +21,6 @@ data class Friendship(
 data class PendingFriendRequest(
     @Serializable(with = UUIDSerializer::class)
     val friendshipId: UUID,
-    val requester: PublicUser
+    val requester: PublicUser,
+    val status: String
 )

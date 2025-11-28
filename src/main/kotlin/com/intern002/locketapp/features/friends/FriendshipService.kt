@@ -42,14 +42,17 @@ class FriendshipService(private val repository: FriendshipRepository) {
         return repository.unfriend(userId, friendId)
     }
 
-    suspend fun getFriendsForUser(userId: UUID): List<FriendUserResponse> {
+    suspend fun getFriendsForUser(userId: UUID): List<FriendResponse> {
         val friends = repository.getFriends(userId)
-        return friends.map {
-            FriendUserResponse(
-                id = it.id.toString(),
-                username = it.username,
-                discriminator = it.discriminator,
-                avatarUrl = it.avatarUrl
+        return friends.map { user ->
+            FriendResponse(
+                user = FriendUserResponse(
+                    id = user.id.toString(),
+                    username = user.username,
+                    discriminator = user.discriminator,
+                    avatarUrl = user.avatarUrl
+                ),
+                status = "accepted"
             )
         }
     }
@@ -60,15 +63,16 @@ class FriendshipService(private val repository: FriendshipRepository) {
 
     suspend fun getSentRequestsForUser(userId: UUID): List<SentFriendRequestResponse> {
         val sentRequests = repository.getSentRequests(userId)
-        return sentRequests.map {
+        return sentRequests.map { req ->
             SentFriendRequestResponse(
-                friendshipId = it.friendshipId.toString(),
+                friendshipId = req.friendshipId.toString(),
                 addressee = FriendUserResponse(
-                    id = it.addressee.id.toString(),
-                    username = it.addressee.username,
-                    discriminator = it.addressee.discriminator,
-                    avatarUrl = it.addressee.avatarUrl
-                )
+                    id = req.addressee.id.toString(),
+                    username = req.addressee.username,
+                    discriminator = req.addressee.discriminator,
+                    avatarUrl = req.addressee.avatarUrl
+                ),
+                status = req.status
             )
         }
     }
