@@ -17,7 +17,7 @@ fun Application.configureRouting() {
 
     val authService: AuthService by inject()
     val userService: UserService by inject()
-    val friendshipService: FriendshipService by inject() // Use FriendshipService
+    val friendshipService: FriendshipService by inject()
 
     routing {
         get("/") {
@@ -28,8 +28,7 @@ fun Application.configureRouting() {
         userRoutes(userService, authService)
 
         authenticate {
-            // All friendship routes require a user to be logged in.
-            friendshipRoutes(friendshipService) // Pass the service
+            friendshipRoutes(friendshipService)
 
             get("/test/me") {
                 val principal = call.principal<UserIdPrincipal>()

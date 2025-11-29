@@ -151,15 +151,13 @@ class FriendshipRepositoryImpl : FriendshipRepository {
     }
 
     override suspend fun getFriendSuggestions(userId: UUID, limit: Int): List<PublicUser> = dbQuery {
-        val friendIds = FriendshipsTable.select {
+        val excludedUserIds = FriendshipsTable.select {
             ((FriendshipsTable.requesterId eq userId) or (FriendshipsTable.addresseeId eq userId)) and
-                    (FriendshipsTable.status eq "accepted")
-        }.map { row ->
-            if (row[FriendshipsTable.requesterId] == userId) row[FriendshipsTable.addresseeId] else row[FriendshipsTable.requesterId]
-        }
+                    (FriendshipsTable.status inList listOf("accepted", "pending"))
+        }.flatMap { listOf(it[FriendshipsTable.requesterId], it[FriendshipsTable.addresseeId]) }.distinct()
 
         UsersTable.select {
-            (UsersTable.id notInList friendIds) and (UsersTable.id neq userId)
+            (UsersTable.id notInList excludedUserIds) and (UsersTable.id neq userId)
         }
         .limit(limit)
         .map(::rowToPublicUser)
