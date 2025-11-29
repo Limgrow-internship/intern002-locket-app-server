@@ -39,5 +39,22 @@ fun Route.postRoutes(postService: PostService) {
                 call.respond(HttpStatusCode.InternalServerError, "Failed to create post")
             }
         }
+
+        get {
+            val principal = call.principal<UserIdPrincipal>()
+                ?: return@get call.respond(HttpStatusCode.Unauthorized)
+            val userId = principal.userId
+
+            val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+            val pageSize = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+
+            try {
+                val posts = postService.getPosts(userId, page, pageSize)
+                call.respond(HttpStatusCode.OK, posts)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                call.respond(HttpStatusCode.InternalServerError, "Failed to get posts")
+            }
+        }
     }
 }

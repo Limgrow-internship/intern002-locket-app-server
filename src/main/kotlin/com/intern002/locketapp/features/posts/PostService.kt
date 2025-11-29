@@ -33,4 +33,22 @@ class PostService(private val postRepository: PostRepository) {
             createdAt = post.createdAt
         )
     }
+
+    suspend fun getPosts(userId: UUID, page: Int, pageSize: Int): List<PostResponse> {
+        val validPage = if (page < 1) 1 else page
+        val validSize = if (pageSize < 1) 20 else pageSize
+
+        val posts = postRepository.getPosts(userId, validPage, validSize)
+
+        return posts.map { post ->
+            PostResponse(
+                id = post.id.toString(),
+                authorId = post.authorId.toString(),
+                mediaUrl = post.mediaUrl,
+                mediaType = post.mediaType,
+                caption = post.caption,
+                createdAt = post.createdAt
+            )
+        }
+    }
 }

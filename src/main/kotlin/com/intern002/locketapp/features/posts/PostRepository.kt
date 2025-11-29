@@ -3,10 +3,7 @@ package com.intern002.locketapp.features.posts
 import com.intern002.locketapp.core.database.DatabaseFactory.dbQuery
 import com.intern002.locketapp.core.database.tables.PostRecipientsTable
 import com.intern002.locketapp.core.database.tables.PostsTable
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.batchInsert
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.*
 import java.util.*
 
 
@@ -23,6 +20,7 @@ data class Post(
 interface PostRepository {
     suspend fun createPost(userId: UUID, request: CreatePostRequest): Post?
     suspend fun getPostById(postId: UUID): Post?
+    suspend fun getPosts(userId: UUID, page: Int, pageSize: Int): List<Post>
 }
 
 
@@ -61,5 +59,18 @@ class PostRepositoryImpl : PostRepository {
         PostsTable.select { PostsTable.id eq postId }
             .map(::toPost)
             .singleOrNull()
+    }
+
+    override suspend fun getPosts(userId: UUID, page: Int, pageSize: Int): List<Post> = dbQuery {
+        val offset = ((page - 1) * pageSize).toLong()
+
+        (PostsTable leftJoin PostRecipientsTable)
+            .select {
+                (PostsTable.authorId eq userId) or (PostRecipientsTable.recipientId eq userId)
+            }
+            .orderBy(PostsTable.createdAt to SortOrder.DESC)
+            .limit(pageSize, offset = offset)
+            .withDistinct()
+            .map { row -> toPost(row) }
     }
 }
