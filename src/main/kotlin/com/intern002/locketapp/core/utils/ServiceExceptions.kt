@@ -7,6 +7,7 @@ sealed class ServiceException(val httpStatusCode: HttpStatusCode, message: Strin
 // (401, 403, 404)
 class InvalidCredentialsException(message: String = "Invalid email or password.") : ServiceException(HttpStatusCode.Unauthorized, message)
 class UserNotFoundException : ServiceException(HttpStatusCode.NotFound, "User not found.")
+class NotMemberOfConversationException(message: String = "You are not a member of this conversation.") : ServiceException(HttpStatusCode.Forbidden, message)
 class RefreshTokenExpiredException : ServiceException(HttpStatusCode.Unauthorized, "Refresh token expired. Please login again.")
 class RefreshTokenMissingException(message: String = "Refresh token is missing or malformed.") : ServiceException(HttpStatusCode.Unauthorized, message)
 class WrongPasswordException: ServiceException(HttpStatusCode.Unauthorized, "The password you entered is incorrect.")

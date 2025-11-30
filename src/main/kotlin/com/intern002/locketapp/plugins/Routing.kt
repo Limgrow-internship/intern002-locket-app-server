@@ -2,6 +2,8 @@ package com.intern002.locketapp.plugins
 
 import com.intern002.locketapp.features.auth.AuthService
 import com.intern002.locketapp.features.auth.authRoutes
+import com.intern002.locketapp.features.chat.ChatService
+import com.intern002.locketapp.features.chat.chatRoutes
 import com.intern002.locketapp.features.friends.FriendshipService
 import com.intern002.locketapp.features.friends.friendshipRoutes
 import com.intern002.locketapp.features.users.UserService
@@ -18,6 +20,7 @@ fun Application.configureRouting() {
     val authService: AuthService by inject()
     val userService: UserService by inject()
     val friendshipService: FriendshipService by inject()
+    val chatService: ChatService by inject()
 
     routing {
         get("/") {
@@ -29,6 +32,7 @@ fun Application.configureRouting() {
 
         authenticate {
             friendshipRoutes(friendshipService)
+            chatRoutes(chatService)
 
             get("/test/me") {
                 val principal = call.principal<UserIdPrincipal>()

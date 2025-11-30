@@ -7,6 +7,9 @@ import com.intern002.locketapp.core.utils.Hashing
 import com.intern002.locketapp.features.auth.AuthRepository
 import com.intern002.locketapp.features.auth.AuthRepositoryImpl
 import com.intern002.locketapp.features.auth.AuthService
+import com.intern002.locketapp.features.chat.ChatRepository
+import com.intern002.locketapp.features.chat.ChatRepositoryImpl
+import com.intern002.locketapp.features.chat.ChatService
 import com.intern002.locketapp.features.friends.FriendshipRepository
 import com.intern002.locketapp.features.friends.FriendshipRepositoryImpl
 import com.intern002.locketapp.features.friends.FriendshipService
@@ -29,5 +32,9 @@ val appModule = module {
 
     // Friendships
     single<FriendshipRepository> { FriendshipRepositoryImpl() }
-    single { FriendshipService(get()) } // Added FriendshipService
+    single { FriendshipService(get()) } 
+
+    // Chat
+    single<ChatRepository> { ChatRepositoryImpl() }
+    single { ChatService(get()) }
 }

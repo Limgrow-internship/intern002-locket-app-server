@@ -25,9 +25,9 @@ class FriendshipRepositoryImpl : FriendshipRepository {
     override suspend fun sendFriendRequest(requesterId: UUID, addresseeId: UUID): Friendship? = dbQuery {
         val activeOrPendingFriendship = FriendshipsTable.select {
             (
-                ((FriendshipsTable.requesterId eq requesterId) and (FriendshipsTable.addresseeId eq addresseeId)) or
-                ((FriendshipsTable.requesterId eq addresseeId) and (FriendshipsTable.addresseeId eq requesterId))
-            ) and (FriendshipsTable.status inList listOf("pending", "accepted"))
+                    ((FriendshipsTable.requesterId eq requesterId) and (FriendshipsTable.addresseeId eq addresseeId)) or
+                            ((FriendshipsTable.requesterId eq addresseeId) and (FriendshipsTable.addresseeId eq requesterId))
+                    ) and (FriendshipsTable.status inList listOf("pending", "accepted"))
         }.singleOrNull()
 
         if (activeOrPendingFriendship != null) {
@@ -36,9 +36,9 @@ class FriendshipRepositoryImpl : FriendshipRepository {
 
         val rejectedFriendship = FriendshipsTable.select {
             (
-                ((FriendshipsTable.requesterId eq requesterId) and (FriendshipsTable.addresseeId eq addresseeId)) or
-                ((FriendshipsTable.requesterId eq addresseeId) and (FriendshipsTable.addresseeId eq requesterId))
-            ) and (FriendshipsTable.status eq "rejected")
+                    ((FriendshipsTable.requesterId eq requesterId) and (FriendshipsTable.addresseeId eq addresseeId)) or
+                            ((FriendshipsTable.requesterId eq addresseeId) and (FriendshipsTable.addresseeId eq requesterId))
+                    ) and (FriendshipsTable.status eq "rejected")
         }.singleOrNull()
 
         if (rejectedFriendship != null) {
@@ -51,7 +51,7 @@ class FriendshipRepositoryImpl : FriendshipRepository {
             if (updatedRows > 0) {
                 FriendshipsTable.select { FriendshipsTable.id eq rejectedFriendship[FriendshipsTable.id] }.map(::rowToFriendship).singleOrNull()
             } else {
-                null 
+                null
             }
         } else {
             val result = FriendshipsTable.insert {
@@ -159,8 +159,8 @@ class FriendshipRepositoryImpl : FriendshipRepository {
         UsersTable.select {
             (UsersTable.id notInList excludedUserIds) and (UsersTable.id neq userId)
         }
-        .limit(limit)
-        .map(::rowToPublicUser)
+            .limit(limit)
+            .map(::rowToPublicUser)
     }
 
     private fun rowToPublicUser(row: ResultRow): PublicUser {
