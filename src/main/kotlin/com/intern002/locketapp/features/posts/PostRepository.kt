@@ -65,6 +65,7 @@ class PostRepositoryImpl : PostRepository {
         val offset = ((page - 1) * pageSize).toLong()
 
         (PostsTable leftJoin PostRecipientsTable)
+            .slice(PostsTable.columns)
             .select {
                 (PostsTable.authorId eq userId) or (PostRecipientsTable.recipientId eq userId)
             }

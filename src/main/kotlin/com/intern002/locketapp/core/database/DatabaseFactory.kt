@@ -22,7 +22,7 @@ object DatabaseFactory {
     ) {
         logger.info("Initializing DB connection...")
         try {
-            dataSource = createHikariDataSource(databaseUrl, databaseUser, databasePassword)
+            dataSource = createHikariDataSource(databaseUrl, databaseUser, databasePassword, 1)
             Database.connect(dataSource!!)
             logger.info("Connected to Supabase PostgreSQL successfully!")
 
@@ -57,7 +57,7 @@ object DatabaseFactory {
         url: String,
         user: String,
         password: String,
-        maxPoolSize: Int = 1,
+        maxPoolSize: Int,
     ): HikariDataSource {
         val config =
             HikariConfig().apply {
@@ -68,6 +68,7 @@ object DatabaseFactory {
                 maximumPoolSize = maxPoolSize
                 isAutoCommit = false
                 transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+                maxLifetime = 300000
                 dataSourceProperties["sslmode"] = "require"
                 dataSourceProperties["prepareThreshold"] = 0
                 validate()
