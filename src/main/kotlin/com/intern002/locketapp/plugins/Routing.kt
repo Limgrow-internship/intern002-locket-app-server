@@ -8,6 +8,8 @@ import com.intern002.locketapp.features.friends.FriendshipService
 import com.intern002.locketapp.features.friends.friendshipRoutes
 import com.intern002.locketapp.features.users.UserService
 import com.intern002.locketapp.features.users.userRoutes
+import com.intern002.locketapp.features.posts.PostService
+import com.intern002.locketapp.features.posts.postRoutes
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -21,6 +23,7 @@ fun Application.configureRouting() {
     val userService: UserService by inject()
     val friendshipService: FriendshipService by inject()
     val chatService: ChatService by inject()
+    val postService: PostService by inject()
 
     routing {
         get("/") {
@@ -32,6 +35,7 @@ fun Application.configureRouting() {
 
         authenticate {
             friendshipRoutes(friendshipService)
+            postRoutes(postService)
             chatRoutes(chatService)
 
             get("/test/me") {

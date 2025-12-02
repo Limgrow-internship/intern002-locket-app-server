@@ -1,1 +1,77 @@
 package com.intern002.locketapp.features.posts
+
+import com.intern002.locketapp.core.database.DatabaseFactory.dbQuery
+import com.intern002.locketapp.core.database.tables.PostRecipientsTable
+import com.intern002.locketapp.core.database.tables.PostsTable
+import org.jetbrains.exposed.sql.*
+import java.util.*
+
+
+data class Post(
+    val id: UUID,
+    val authorId: UUID,
+    val mediaUrl: String,
+    val mediaType: String,
+    val caption: String?,
+    val createdAt: String
+)
+
+
+interface PostRepository {
+    suspend fun createPost(userId: UUID, request: CreatePostRequest): Post?
+    suspend fun getPostById(postId: UUID): Post?
+    suspend fun getPosts(userId: UUID, page: Int, pageSize: Int): List<Post>
+}
+
+
+class PostRepositoryImpl : PostRepository {
+
+    private fun toPost(row: ResultRow): Post = Post(
+        id = row[PostsTable.id],
+        authorId = row[PostsTable.authorId],
+        mediaUrl = row[PostsTable.mediaUrl],
+        mediaType = row[PostsTable.mediaType],
+        caption = row[PostsTable.caption],
+        createdAt = row[PostsTable.createdAt].toString()
+    )
+
+    override suspend fun createPost(userId: UUID, request: CreatePostRequest): Post? = dbQuery {
+        val insertStatement = PostsTable.insert {
+            it[authorId] = userId
+            it[mediaUrl] = request.mediaUrl
+            it[mediaType] = request.mediaType
+            it[caption] = request.caption
+        }
+        val newId = insertStatement[PostsTable.id]
+
+        if (request.recipientIds.isNotEmpty()) {
+            PostRecipientsTable.batchInsert(request.recipientIds) { recipientIdString ->
+                this[PostRecipientsTable.postId] = newId
+                this[PostRecipientsTable.recipientId] = UUID.fromString(recipientIdString)
+            }
+        }
+        PostsTable.select { PostsTable.id eq newId }
+            .map(::toPost)
+            .singleOrNull()
+    }
+
+    override suspend fun getPostById(postId: UUID): Post? = dbQuery {
+        PostsTable.select { PostsTable.id eq postId }
+            .map(::toPost)
+            .singleOrNull()
+    }
+
+    override suspend fun getPosts(userId: UUID, page: Int, pageSize: Int): List<Post> = dbQuery {
+        val offset = ((page - 1) * pageSize).toLong()
+
+        (PostsTable leftJoin PostRecipientsTable)
+            .slice(PostsTable.columns)
+            .select {
+                (PostsTable.authorId eq userId) or (PostRecipientsTable.recipientId eq userId)
+            }
+            .orderBy(PostsTable.createdAt to SortOrder.DESC)
+            .limit(pageSize, offset = offset)
+            .withDistinct()
+            .map { row -> toPost(row) }
+    }
+}
