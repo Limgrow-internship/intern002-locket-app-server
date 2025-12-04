@@ -7,6 +7,17 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import java.util.UUID
 
 class ChatRepositoryImpl : ChatRepository {
+    override suspend fun getPartnerId(conversationId: UUID, senderId: UUID): UUID? = dbQuery {
+        val friendship = FriendshipsTable.select { FriendshipsTable.conversationId eq conversationId }.singleOrNull()
+            ?: return@dbQuery null
+
+        if (friendship[FriendshipsTable.requesterId] == senderId) {
+            friendship[FriendshipsTable.addresseeId]
+        } else {
+            friendship[FriendshipsTable.requesterId]
+        }
+    }
+
     override suspend fun getConversations(userId: UUID): List<ConversationListItemDTO> = dbQuery {
         val conversationIds = FriendshipsTable.select {
             ((FriendshipsTable.requesterId eq userId) or (FriendshipsTable.addresseeId eq userId)) and
@@ -55,7 +66,7 @@ class ChatRepositoryImpl : ChatRepository {
         }.singleOrNull()
 
         if (friendship == null) {
-            return@dbQuery null // User is not part of this conversation
+            return@dbQuery null
         }
 
         val newMessageId = MessagesTable.insert {

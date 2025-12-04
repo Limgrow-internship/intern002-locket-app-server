@@ -6,10 +6,14 @@ import com.intern002.locketapp.features.chat.ChatService
 import com.intern002.locketapp.features.chat.chatRoutes
 import com.intern002.locketapp.features.friends.FriendshipService
 import com.intern002.locketapp.features.friends.friendshipRoutes
-import com.intern002.locketapp.features.users.UserService
-import com.intern002.locketapp.features.users.userRoutes
+import com.intern002.locketapp.features.notifications.FcmTokenService
+import com.intern002.locketapp.features.notifications.NotificationService
+import com.intern002.locketapp.features.notifications.fcmTokenRoutes
+import com.intern002.locketapp.features.notifications.notificationRoutes
 import com.intern002.locketapp.features.posts.PostService
 import com.intern002.locketapp.features.posts.postRoutes
+import com.intern002.locketapp.features.users.UserService
+import com.intern002.locketapp.features.users.userRoutes
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -24,6 +28,8 @@ fun Application.configureRouting() {
     val friendshipService: FriendshipService by inject()
     val chatService: ChatService by inject()
     val postService: PostService by inject()
+    val fcmTokenService: FcmTokenService by inject()
+    val notificationService: NotificationService by inject()
 
     routing {
         get("/") {
@@ -37,6 +43,8 @@ fun Application.configureRouting() {
             friendshipRoutes(friendshipService)
             postRoutes(postService)
             chatRoutes(chatService)
+            fcmTokenRoutes(fcmTokenService)
+            notificationRoutes(notificationService)
 
             get("/test/me") {
                 val principal = call.principal<UserIdPrincipal>()

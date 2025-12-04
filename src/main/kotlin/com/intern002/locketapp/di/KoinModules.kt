@@ -13,6 +13,7 @@ import com.intern002.locketapp.features.chat.ChatService
 import com.intern002.locketapp.features.friends.FriendshipRepository
 import com.intern002.locketapp.features.friends.FriendshipRepositoryImpl
 import com.intern002.locketapp.features.friends.FriendshipService
+import com.intern002.locketapp.features.notifications.*
 import com.intern002.locketapp.features.posts.PostRepository
 import com.intern002.locketapp.features.posts.PostRepositoryImpl
 import com.intern002.locketapp.features.posts.PostService
@@ -26,17 +27,23 @@ val appModule = module {
     single<TokenProvider> { JwtTokenProvider() }
 
     single<AuthRepository> { AuthRepositoryImpl() }
-    single { AuthService(get(), get(), get()) }
+    single { AuthService(get(), get(), get(), get()) }
 
     single<UserRepository> { UserRepositoryImpl() }
     single { UserService(get(), get(), get()) }
 
     single<FriendshipRepository> { FriendshipRepositoryImpl() }
-    single { FriendshipService(get()) } 
+    single { FriendshipService(get(), get()) } 
 
     single<ChatRepository> { ChatRepositoryImpl() }
-    single { ChatService(get()) }
+    single { ChatService(get(), get()) }
 
     single<PostRepository> { PostRepositoryImpl() }
     single { PostService(get()) }
+
+    single<NotificationRepository> { NotificationRepositoryImpl() }
+    single { FcmTokenRepository() }
+    single { FcmTokenService(get()) } 
+    single { FCMService(get()) }
+    single { NotificationService(get(), get(), get(), get()) }
 }

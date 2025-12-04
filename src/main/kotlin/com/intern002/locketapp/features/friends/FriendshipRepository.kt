@@ -15,6 +15,7 @@ data class PublicUser(
 
 interface FriendshipRepository {
 
+    suspend fun getFriendshipById(friendshipId: UUID): Friendship?
     suspend fun sendFriendRequest(requesterId: UUID, addresseeId: UUID): Friendship?
 
     suspend fun acceptFriendRequest(friendshipId: UUID): Boolean

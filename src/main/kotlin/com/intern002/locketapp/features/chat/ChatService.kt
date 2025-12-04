@@ -1,18 +1,41 @@
 package com.intern002.locketapp.features.chat
 
 import com.intern002.locketapp.core.utils.NotMemberOfConversationException
+import com.intern002.locketapp.features.notifications.NotificationService
 import io.ktor.server.plugins.*
 import java.util.UUID
 
-class ChatService(private val chatRepository: ChatRepository) {
+class ChatService(
+    private val chatRepository: ChatRepository,
+    private val notificationService: NotificationService
+) {
     suspend fun getConversations(userId: UUID): List<ConversationListItemDTO> {
         return chatRepository.getConversations(userId)
     }
 
     suspend fun saveMessage(senderId: UUID, request: SendMessageRequest): MessageDTO {
         validateRequest(request)
-        return chatRepository.saveMessage(senderId, request)
+        val newMessage = chatRepository.saveMessage(senderId, request)
             ?: throw NotMemberOfConversationException()
+
+        val recipientId = chatRepository.getPartnerId(request.conversationId, senderId)
+        if (recipientId != null) {
+            val messageContent = when (newMessage.messageType) {
+                "text" -> newMessage.content ?: ""
+                "image" -> "Sent an image"
+                "sticker" -> "Sent a sticker"
+                else -> "Sent a message"
+            }
+            notificationService.createNewMessageNotification(
+                senderId = senderId,
+                recipientId = recipientId,
+                conversationId = request.conversationId,
+                messageContent = messageContent
+            )
+        }
+        // -------------------------
+
+        return newMessage
     }
 
     suspend fun getMessages(userId: UUID, conversationId: UUID, page: Int, pageSize: Int): List<MessageDTO> {
