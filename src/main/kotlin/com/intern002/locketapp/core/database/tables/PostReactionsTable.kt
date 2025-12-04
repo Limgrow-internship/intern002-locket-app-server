@@ -7,7 +7,8 @@ import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 
 object PostReactionsTable : Table("post_reactions") {
     val id = uuid("id").autoGenerate()
-    val postId = uuid("post_id").references(PostsTable.id, onDelete = ReferenceOption.CASCADE).index("idx_post_reactions_post")
+    val postId =
+        uuid("post_id").references(PostsTable.id, onDelete = ReferenceOption.CASCADE).index("idx_post_reactions_post")
     val reactorId = uuid("reactor_id").references(UsersTable.id, onDelete = ReferenceOption.CASCADE)
     val reactionTypeId = integer("reaction_type_id").references(ReactionTypesTable.id)
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())

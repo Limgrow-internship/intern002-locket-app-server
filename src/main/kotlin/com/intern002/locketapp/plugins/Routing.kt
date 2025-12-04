@@ -6,11 +6,13 @@ import com.intern002.locketapp.features.chat.ChatService
 import com.intern002.locketapp.features.chat.chatRoutes
 import com.intern002.locketapp.features.friends.FriendshipService
 import com.intern002.locketapp.features.friends.friendshipRoutes
-import com.intern002.locketapp.features.users.UserService
-import com.intern002.locketapp.features.users.userRoutes
 import com.intern002.locketapp.features.posts.PostService
 import com.intern002.locketapp.features.posts.postRoutes
-import io.ktor.http.HttpStatusCode
+import com.intern002.locketapp.features.reaction.ReactionService
+import com.intern002.locketapp.features.reaction.reactionRoutes
+import com.intern002.locketapp.features.users.UserService
+import com.intern002.locketapp.features.users.userRoutes
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
@@ -24,6 +26,7 @@ fun Application.configureRouting() {
     val friendshipService: FriendshipService by inject()
     val chatService: ChatService by inject()
     val postService: PostService by inject()
+    val reactionService: ReactionService by inject()
 
     routing {
         get("/") {
@@ -37,6 +40,7 @@ fun Application.configureRouting() {
             friendshipRoutes(friendshipService)
             postRoutes(postService)
             chatRoutes(chatService)
+            reactionRoutes(reactionService)
 
             get("/test/me") {
                 val principal = call.principal<UserIdPrincipal>()
