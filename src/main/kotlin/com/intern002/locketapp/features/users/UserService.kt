@@ -43,33 +43,40 @@ class UserService(
         val newEmail = request.email?.takeIf { it != currentUser.email }
         val newUsername = request.username?.takeIf { it != currentUser.username }
         val newPasswordHash = request.password?.let { hashing.hash(it) }
-
         val newBirthday = request.birthday?.let {
             try {
                 LocalDate.parse(it)
             } catch (_: Exception) {
                 throw InvalidDateFormatException()
             }
+        }?.takeIf { it != currentUser.birthday }
+
+        val hasChanges = newEmail != null || newUsername != null || newPasswordHash != null || newBirthday != null || request.avatarUrl != currentUser.avatarUrl
+
+        if (hasChanges) {
+            userRepository.updateUser(
+                uuid,
+                newEmail,
+                newUsername,
+                newPasswordHash,
+                newBirthday,
+                request.avatarUrl
+            )
         }
 
-        userRepository.updateUser(
-            uuid,
-            newEmail,
-            newUsername,
-            newPasswordHash,
-            newBirthday,
-            request.avatarUrl
-        )
-
-        val updated = authRepository.findById(uuid) ?: throw UserNotFoundException()
+        val updatedUser = if (hasChanges) {
+            authRepository.findById(uuid) ?: throw UserNotFoundException()
+        } else {
+            currentUser
+        }
 
         return UserProfileResponse(
-            id = updated.id.toString(),
-            email = updated.email,
-            username = updated.username,
-            discriminator = updated.discriminator,
-            avatarUrl = updated.avatarUrl,
-            birthday = updated.birthday.toString()
+            id = updatedUser.id.toString(),
+            email = updatedUser.email,
+            username = updatedUser.username,
+            discriminator = updatedUser.discriminator,
+            avatarUrl = updatedUser.avatarUrl,
+            birthday = updatedUser.birthday.toString()
         )
     }
 }
