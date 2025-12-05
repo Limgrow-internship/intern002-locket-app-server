@@ -30,7 +30,9 @@ class PostService(private val postRepository: PostRepository) {
             mediaUrl = post.mediaUrl,
             mediaType = post.mediaType,
             caption = post.caption,
-            createdAt = post.createdAt
+            createdAt = post.createdAt,
+            reactionCount = 0,
+            latestReactions = emptyList()
         )
     }
 
@@ -40,15 +42,6 @@ class PostService(private val postRepository: PostRepository) {
 
         val posts = postRepository.getPosts(userId, validPage, validSize)
 
-        return posts.map { post ->
-            PostResponse(
-                id = post.id.toString(),
-                authorId = post.authorId.toString(),
-                mediaUrl = post.mediaUrl,
-                mediaType = post.mediaType,
-                caption = post.caption,
-                createdAt = post.createdAt
-            )
-        }
+        return postRepository.getPosts(userId, validPage, validSize)
     }
 }

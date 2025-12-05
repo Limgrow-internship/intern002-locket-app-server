@@ -17,6 +17,23 @@ data class CreatePostRequest(
     val recipientIds: List<String>
 )
 
+
+@Serializable
+data class PostReactionDto(
+
+    @SerialName("user_id")
+    val userId: String,
+
+    val username: String,
+
+    @SerialName("avatar_url")
+    val avatarUrl: String?,
+
+    val emoji: String
+
+)
+
+
 @Serializable
 data class PostResponse(
     val id: String,
@@ -24,5 +41,9 @@ data class PostResponse(
     val mediaUrl: String,
     val mediaType: String,
     val caption: String?,
-    val createdAt: String
+    val createdAt: String,
+    @SerialName("reaction_count")
+    val reactionCount: Int?,
+    @SerialName("latest_reactions")
+    val latestReactions: List<PostReactionDto>?
 )
