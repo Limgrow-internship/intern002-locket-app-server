@@ -33,13 +33,20 @@ class ChatService(
                 messageContent = messageContent
             )
         }
-        // -------------------------
 
         return newMessage
     }
 
     suspend fun getMessages(userId: UUID, conversationId: UUID, page: Int, pageSize: Int): List<MessageDTO> {
-        return chatRepository.getMessages(userId, conversationId, page, pageSize)
+        val messages = chatRepository.getMessages(userId, conversationId, page, pageSize)
+        if (messages.isNotEmpty()) {
+            chatRepository.markMessagesAsRead(conversationId, userId)
+        }
+        return messages
+    }
+
+    suspend fun markConversationAsRead(userId: UUID, conversationId: UUID): Int {
+        return chatRepository.markMessagesAsRead(conversationId, userId)
     }
 
     private fun validateRequest(request: SendMessageRequest) {

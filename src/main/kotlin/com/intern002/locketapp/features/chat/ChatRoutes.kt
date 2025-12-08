@@ -34,5 +34,13 @@ fun Route.chatRoutes(chatService: ChatService) {
             val messages = chatService.getMessages(principal.userId, conversationId, page, pageSize)
             call.respond(HttpStatusCode.OK, messages)
         }
+
+        post("/messages/{conversationId}/read") {
+            val principal = call.principal<UserIdPrincipal>() ?: return@post call.respond(HttpStatusCode.Unauthorized)
+            val conversationId = call.parameters["conversationId"]?.let { UUID.fromString(it) } ?: return@post call.respond(HttpStatusCode.BadRequest, "Invalid conversation ID")
+
+            val updatedCount = chatService.markConversationAsRead(principal.userId, conversationId)
+            call.respond(HttpStatusCode.OK, mapOf("updatedCount" to updatedCount))
+        }
     }
 }

@@ -19,42 +19,79 @@ class ChatRepositoryImpl : ChatRepository {
     }
 
     override suspend fun getConversations(userId: UUID): List<ConversationListItemDTO> = dbQuery {
-        val conversationIds = FriendshipsTable.select {
-            ((FriendshipsTable.requesterId eq userId) or (FriendshipsTable.addresseeId eq userId)) and
-                    (FriendshipsTable.status eq "accepted")
-        }.mapNotNull { it[FriendshipsTable.conversationId] }
+        val friendships = FriendshipsTable
+            .slice(FriendshipsTable.conversationId, FriendshipsTable.requesterId, FriendshipsTable.addresseeId)
+            .select {
+                ((FriendshipsTable.requesterId eq userId) or (FriendshipsTable.addresseeId eq userId)) and
+                        (FriendshipsTable.status eq "accepted")
+            }
+            .map {
+                val convId = it[FriendshipsTable.conversationId]
+                val partnerId = if (it[FriendshipsTable.requesterId] == userId) it[FriendshipsTable.addresseeId] else it[FriendshipsTable.requesterId]
+                convId to partnerId
+            }
 
-        val results = mutableListOf<ConversationListItemDTO>()
+        val convIds = friendships.mapNotNull { it.first }
+        if (convIds.isEmpty()) return@dbQuery emptyList()
 
-        for (convId in conversationIds) {
-            val friendship = FriendshipsTable.select { FriendshipsTable.conversationId eq convId }.single()
-            val partnerId = if (friendship[FriendshipsTable.requesterId] == userId) friendship[FriendshipsTable.addresseeId] else friendship[FriendshipsTable.requesterId]
+        val partnerIds = friendships.map { it.second }
 
-            val partner = UsersTable.select { UsersTable.id eq partnerId }.map {
-                ConversationPartnerDTO(
+        val partners = UsersTable
+            .select { UsersTable.id inList partnerIds }
+            .associate {
+                it[UsersTable.id] to ConversationPartnerDTO(
                     id = it[UsersTable.id],
                     username = it[UsersTable.username],
                     avatarUrl = it[UsersTable.avatarUrl]
                 )
-            }.single()
+            }
 
-            val conversation = ConversationsTable.select { ConversationsTable.id eq convId }.single()
+        val conversations = ConversationsTable
+            .slice(ConversationsTable.id, ConversationsTable.createdAt)
+            .select { ConversationsTable.id inList convIds }
+            .associate { it[ConversationsTable.id] to it[ConversationsTable.createdAt] }
 
-            val lastMessageRow = MessagesTable
-                .select { MessagesTable.conversationId eq convId }
-                .orderBy(MessagesTable.createdAt, SortOrder.DESC)
-                .limit(1)
-                .singleOrNull()
+        val maxCreatedAt = MessagesTable.createdAt.max()
+        val lastMessageSubQuery = MessagesTable
+            .slice(MessagesTable.conversationId, maxCreatedAt)
+            .select { MessagesTable.conversationId inList convIds }
+            .groupBy(MessagesTable.conversationId)
 
-            val lastMessage = lastMessageRow?.let { toMessageDTO(it) }
+        val lastMessagePairs = lastMessageSubQuery.mapNotNull { row ->
+            row[maxCreatedAt]?.let { maxTime ->
+                row[MessagesTable.conversationId] to maxTime
+            }
+        }
 
-            results.add(ConversationListItemDTO(
+        val lastMessages = if (lastMessagePairs.isNotEmpty()) {
+            MessagesTable
+                .select { (MessagesTable.conversationId to MessagesTable.createdAt) inList lastMessagePairs }
+                .associate { it[MessagesTable.conversationId] to toMessageDTO(it) }
+        } else {
+            emptyMap()
+        }
+        
+        val unreadCounts = MessagesTable
+            .slice(MessagesTable.conversationId, MessagesTable.id.count())
+            .select { (MessagesTable.conversationId inList convIds) and (MessagesTable.isRead eq false) and (MessagesTable.senderId neq userId) }
+            .groupBy(MessagesTable.conversationId)
+            .associate { it[MessagesTable.conversationId] to it[MessagesTable.id.count()].toInt() }
+
+        val results = friendships.mapNotNull { (convId, partnerId) ->
+            if (convId == null) return@mapNotNull null
+            val partner = partners[partnerId] ?: return@mapNotNull null
+            val conversationCreatedAt = conversations[convId] ?: return@mapNotNull null
+            val lastMessage = lastMessages[convId]
+
+            ConversationListItemDTO(
                 conversationId = convId,
                 partner = partner,
                 lastMessage = lastMessage,
-                createdAt = conversation[ConversationsTable.createdAt]
-            ))
+                unreadCount = unreadCounts[convId] ?: 0,
+                createdAt = conversationCreatedAt
+            )
         }
+
         results.sortedByDescending { it.lastMessage?.createdAt ?: it.createdAt }
     }
 
@@ -101,13 +138,26 @@ class ChatRepositoryImpl : ChatRepository {
         messageRows.map { toMessageDTO(it) }
     }
 
+    override suspend fun markMessagesAsRead(conversationId: UUID, userId: UUID): Int = dbQuery {
+        MessagesTable.update(
+            where = {
+                (MessagesTable.conversationId eq conversationId) and
+                        (MessagesTable.senderId neq userId) and // Only mark messages sent by the other person
+                        (MessagesTable.isRead eq false)
+            }
+        ) {
+            it[isRead] = true
+        }
+    }
+
     private fun toMessageDTO(row: ResultRow): MessageDTO {
         return MessageDTO(
             senderId = row[MessagesTable.senderId],
             messageType = row[MessagesTable.messageType],
             content = row[MessagesTable.content],
             imageUrl = row[MessagesTable.imageUrl],
-            createdAt = row[MessagesTable.createdAt]
+            createdAt = row[MessagesTable.createdAt],
+            isRead = row[MessagesTable.isRead]
         )
     }
 }

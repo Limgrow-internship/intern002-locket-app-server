@@ -16,6 +16,7 @@ object MessagesTable : Table("messages") {
     val imageUrl = text("image_url").nullable()
     val messageType = text("message_type").default("text").check { it inList listOf("text", "image", "sticker") }
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
+    val isRead = bool("is_read").default(false)
 
     override val primaryKey = PrimaryKey(id)
 }

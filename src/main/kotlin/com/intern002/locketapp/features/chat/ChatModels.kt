@@ -20,7 +20,8 @@ data class MessageDTO(
     val messageType: String,
     val content: String?,
     val imageUrl: String?,
-    val createdAt: Instant
+    val createdAt: Instant,
+    val isRead: Boolean
 )
 
 @Serializable
@@ -29,6 +30,7 @@ data class ConversationListItemDTO(
     val conversationId: UUID,
     val partner: ConversationPartnerDTO,
     val lastMessage: MessageDTO?,
+    val unreadCount: Int,
     val createdAt: Instant
 )
 
