@@ -1,12 +1,16 @@
 package com.intern002.locketapp.features.posts
 
+import com.intern002.locketapp.features.auth.AuthRepository
 import java.util.*
 
 
 class InvalidPostDataException(message: String) : Exception(message)
 class PostCreationException : Exception("Could not create post")
 
-class PostService(private val postRepository: PostRepository) {
+class PostService(
+    private val postRepository: PostRepository,
+    private val authRepository: AuthRepository
+) {
 
     suspend fun createPost(userId: UUID, request: CreatePostRequest): PostResponse {
 
@@ -19,6 +23,10 @@ class PostService(private val postRepository: PostRepository) {
         if (request.recipientIds.isEmpty()) {
             throw InvalidPostDataException("You must select at least one friend to send.")
         }
+
+        val user = authRepository.findById(userId)
+            ?: throw Exception("User not found")
+
         // 2. Gọi Repo
         val post = postRepository.createPost(userId, request)
             ?: throw PostCreationException()
@@ -28,6 +36,8 @@ class PostService(private val postRepository: PostRepository) {
             id = post.id.toString(),
             authorId = post.authorId.toString(),
             mediaUrl = post.mediaUrl,
+            authorName = user.username,
+            authorAvatar = user.avatarUrl,
             mediaType = post.mediaType,
             caption = post.caption,
             createdAt = post.createdAt,

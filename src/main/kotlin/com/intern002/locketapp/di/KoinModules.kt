@@ -41,7 +41,7 @@ val appModule = module {
     single { ChatService(get()) }
 
     single<PostRepository> { PostRepositoryImpl() }
-    single { PostService(get()) }
+    single { PostService(get(), get()) }
 
     single<ReactionRepository> { ReactionRepositoryImpl() }
     single { ReactionService(get()) }
