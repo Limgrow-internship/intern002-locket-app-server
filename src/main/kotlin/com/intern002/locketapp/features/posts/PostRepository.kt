@@ -63,8 +63,16 @@ class PostRepositoryImpl : PostRepository {
     override suspend fun getPosts(userId: UUID, page: Int, pageSize: Int): List<PostResponse> = dbQuery {
         val offset = ((page - 1) * pageSize).toLong()
 
-        val postsRows = (PostsTable leftJoin PostRecipientsTable)
-            .slice(PostsTable.columns)
+        val query = PostsTable
+            .innerJoin(UsersTable, { PostsTable.authorId }, { UsersTable.id })
+            .leftJoin(PostRecipientsTable, { PostsTable.id }, { PostRecipientsTable.postId })
+
+        val postsRows = query
+            .slice(
+                PostsTable.columns +
+                        UsersTable.username +
+                        UsersTable.avatarUrl
+            )
             .select {
                 (PostsTable.authorId eq userId) or (PostRecipientsTable.recipientId eq userId)
             }
@@ -92,6 +100,8 @@ class PostRepositoryImpl : PostRepository {
                 id = postId.toString(),
                 authorId = row[PostsTable.authorId].toString(),
                 mediaUrl = row[PostsTable.mediaUrl],
+                authorName = row[UsersTable.username],
+                authorAvatar = row[UsersTable.avatarUrl],
                 mediaType = row[PostsTable.mediaType],
                 caption = row[PostsTable.caption],
                 createdAt = row[PostsTable.createdAt].toString(),

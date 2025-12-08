@@ -39,6 +39,10 @@ data class PostResponse(
     val id: String,
     val authorId: String,
     val mediaUrl: String,
+    @SerialName("author_name")
+    val authorName: String,
+    @SerialName("author_avatar")
+    val authorAvatar: String?,
     val mediaType: String,
     val caption: String?,
     val createdAt: String,
