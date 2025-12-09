@@ -1,12 +1,16 @@
 package com.intern002.locketapp.features.posts
 
+import com.intern002.locketapp.features.auth.AuthRepository
 import java.util.*
 
 
 class InvalidPostDataException(message: String) : Exception(message)
 class PostCreationException : Exception("Could not create post")
 
-class PostService(private val postRepository: PostRepository) {
+class PostService(
+    private val postRepository: PostRepository,
+    private val authRepository: AuthRepository
+) {
 
     suspend fun createPost(userId: UUID, request: CreatePostRequest): PostResponse {
 
@@ -19,18 +23,24 @@ class PostService(private val postRepository: PostRepository) {
         if (request.recipientIds.isEmpty()) {
             throw InvalidPostDataException("You must select at least one friend to send.")
         }
-        // 2. Gọi Repo
+
+        val user = authRepository.findById(userId)
+            ?: throw Exception("User not found")
+
         val post = postRepository.createPost(userId, request)
             ?: throw PostCreationException()
 
-        // 3. Map sang Response
         return PostResponse(
             id = post.id.toString(),
             authorId = post.authorId.toString(),
             mediaUrl = post.mediaUrl,
+            authorName = user.username,
+            authorAvatar = user.avatarUrl,
             mediaType = post.mediaType,
             caption = post.caption,
-            createdAt = post.createdAt
+            createdAt = post.createdAt,
+            reactionCount = 0,
+            latestReactions = emptyList()
         )
     }
 
@@ -40,15 +50,6 @@ class PostService(private val postRepository: PostRepository) {
 
         val posts = postRepository.getPosts(userId, validPage, validSize)
 
-        return posts.map { post ->
-            PostResponse(
-                id = post.id.toString(),
-                authorId = post.authorId.toString(),
-                mediaUrl = post.mediaUrl,
-                mediaType = post.mediaType,
-                caption = post.caption,
-                createdAt = post.createdAt
-            )
-        }
+        return postRepository.getPosts(userId, validPage, validSize)
     }
 }

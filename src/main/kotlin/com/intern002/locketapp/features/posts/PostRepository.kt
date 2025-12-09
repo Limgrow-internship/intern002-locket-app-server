@@ -1,8 +1,7 @@
 package com.intern002.locketapp.features.posts
 
 import com.intern002.locketapp.core.database.DatabaseFactory.dbQuery
-import com.intern002.locketapp.core.database.tables.PostRecipientsTable
-import com.intern002.locketapp.core.database.tables.PostsTable
+import com.intern002.locketapp.core.database.tables.*
 import org.jetbrains.exposed.sql.*
 import java.util.*
 
@@ -20,7 +19,7 @@ data class Post(
 interface PostRepository {
     suspend fun createPost(userId: UUID, request: CreatePostRequest): Post?
     suspend fun getPostById(postId: UUID): Post?
-    suspend fun getPosts(userId: UUID, page: Int, pageSize: Int): List<Post>
+    suspend fun getPosts(userId: UUID, page: Int, pageSize: Int): List<PostResponse>
 }
 
 
@@ -61,17 +60,62 @@ class PostRepositoryImpl : PostRepository {
             .singleOrNull()
     }
 
-    override suspend fun getPosts(userId: UUID, page: Int, pageSize: Int): List<Post> = dbQuery {
+    override suspend fun getPosts(userId: UUID, page: Int, pageSize: Int): List<PostResponse> = dbQuery {
         val offset = ((page - 1) * pageSize).toLong()
 
-        (PostsTable leftJoin PostRecipientsTable)
-            .slice(PostsTable.columns)
+        val query = PostsTable
+            .innerJoin(UsersTable, { PostsTable.authorId }, { UsersTable.id })
+            .leftJoin(PostRecipientsTable, { PostsTable.id }, { PostRecipientsTable.postId })
+
+        val postsRows = query
+            .slice(
+                PostsTable.columns +
+                        UsersTable.username +
+                        UsersTable.avatarUrl
+            )
             .select {
                 (PostsTable.authorId eq userId) or (PostRecipientsTable.recipientId eq userId)
             }
             .orderBy(PostsTable.createdAt to SortOrder.DESC)
             .limit(pageSize, offset = offset)
             .withDistinct()
-            .map { row -> toPost(row) }
+            .toList()
+
+        if (postsRows.isEmpty()) return@dbQuery emptyList()
+
+        val postIds = postsRows.map { it[PostsTable.id] }
+
+        val reactionsRows = (PostReactionsTable innerJoin UsersTable innerJoin ReactionTypesTable)
+            .select { PostReactionsTable.postId inList postIds }
+            .orderBy(PostReactionsTable.createdAt to SortOrder.DESC)
+            .toList()
+
+        val reactionsMap = reactionsRows.groupBy { it[PostReactionsTable.postId] }
+
+        postsRows.map { row ->
+            val postId = row[PostsTable.id]
+            val reactionsForThisPost = reactionsMap[postId] ?: emptyList()
+
+            PostResponse(
+                id = postId.toString(),
+                authorId = row[PostsTable.authorId].toString(),
+                mediaUrl = row[PostsTable.mediaUrl],
+                authorName = row[UsersTable.username],
+                authorAvatar = row[UsersTable.avatarUrl],
+                mediaType = row[PostsTable.mediaType],
+                caption = row[PostsTable.caption],
+                createdAt = row[PostsTable.createdAt].toString(),
+
+                reactionCount = reactionsForThisPost.size,
+                latestReactions = reactionsForThisPost.map { r ->
+                    PostReactionDto(
+                        userId = r[UsersTable.id].toString(),
+                        username = r[UsersTable.username],
+                        avatarUrl = r[UsersTable.avatarUrl],
+                        emoji = r[ReactionTypesTable.emoji] ?: "👍"
+                    )
+                }
+            )
+        }
     }
 }

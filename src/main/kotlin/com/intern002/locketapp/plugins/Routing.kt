@@ -12,6 +12,8 @@ import com.intern002.locketapp.features.notifications.fcmTokenRoutes
 import com.intern002.locketapp.features.notifications.notificationRoutes
 import com.intern002.locketapp.features.posts.PostService
 import com.intern002.locketapp.features.posts.postRoutes
+import com.intern002.locketapp.features.reaction.ReactionService
+import com.intern002.locketapp.features.reaction.reactionRoutes
 import com.intern002.locketapp.features.users.UserService
 import com.intern002.locketapp.features.users.userRoutes
 import io.ktor.http.HttpStatusCode
@@ -28,6 +30,7 @@ fun Application.configureRouting() {
     val friendshipService: FriendshipService by inject()
     val chatService: ChatService by inject()
     val postService: PostService by inject()
+    val reactionService: ReactionService by inject()
     val fcmTokenService: FcmTokenService by inject()
     val notificationService: NotificationService by inject()
 
@@ -43,6 +46,7 @@ fun Application.configureRouting() {
             friendshipRoutes(friendshipService)
             postRoutes(postService)
             chatRoutes(chatService)
+            reactionRoutes(reactionService)
             fcmTokenRoutes(fcmTokenService)
             notificationRoutes(notificationService)
 

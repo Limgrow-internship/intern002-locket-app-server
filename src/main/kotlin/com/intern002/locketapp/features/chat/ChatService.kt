@@ -38,11 +38,7 @@ class ChatService(
     }
 
     suspend fun getMessages(userId: UUID, conversationId: UUID, page: Int, pageSize: Int): List<MessageDTO> {
-        val messages = chatRepository.getMessages(userId, conversationId, page, pageSize)
-        if (messages.isNotEmpty()) {
-            chatRepository.markMessagesAsRead(conversationId, userId)
-        }
-        return messages
+        return chatRepository.getMessages(userId, conversationId, page, pageSize)
     }
 
     suspend fun markConversationAsRead(userId: UUID, conversationId: UUID): Int {

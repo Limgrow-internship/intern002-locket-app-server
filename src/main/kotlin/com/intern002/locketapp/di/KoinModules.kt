@@ -17,9 +17,12 @@ import com.intern002.locketapp.features.notifications.*
 import com.intern002.locketapp.features.posts.PostRepository
 import com.intern002.locketapp.features.posts.PostRepositoryImpl
 import com.intern002.locketapp.features.posts.PostService
+import com.intern002.locketapp.features.reaction.ReactionRepository
+import com.intern002.locketapp.features.reaction.ReactionService
 import com.intern002.locketapp.features.users.UserRepository
 import com.intern002.locketapp.features.users.UserRepositoryImpl
 import com.intern002.locketapp.features.users.UserService
+import com.intern002.locketapp.features.reaction.ReactionRepositoryImpl
 import org.koin.dsl.module
 
 val appModule = module {
@@ -39,7 +42,10 @@ val appModule = module {
     single { ChatService(get(), get()) }
 
     single<PostRepository> { PostRepositoryImpl() }
-    single { PostService(get()) }
+    single { PostService(get(), get()) }
+
+    single<ReactionRepository> { ReactionRepositoryImpl() }
+    single { ReactionService(get()) }
 
     single<NotificationRepository> { NotificationRepositoryImpl() }
     single { FcmTokenRepository() }
