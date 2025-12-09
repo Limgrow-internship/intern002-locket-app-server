@@ -99,9 +99,10 @@ fun Route.friendshipRoutes(friendshipService: FriendshipService) {
         }
 
         put("/accept/{friendshipId}") {
+            val principal = call.principal<UserIdPrincipal>() ?: return@put call.respond(HttpStatusCode.Unauthorized)
             val friendshipId = call.parameters["friendshipId"]?.let { UUID.fromString(it) } ?: return@put call.respond(HttpStatusCode.BadRequest)
 
-            val success = friendshipService.acceptRequest(friendshipId)
+            val success = friendshipService.acceptRequest(friendshipId, principal.userId)
             if (success) {
                 call.respond(HttpStatusCode.OK, GenericResponse(true, "Friend request accepted."))
             } else {

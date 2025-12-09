@@ -14,7 +14,7 @@ class ReactionService(private val reactionRepository: ReactionRepository) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid Post ID format")
         }
-        
+
         reactionRepository.reactToPost(userId, postIdUuid, request.reactionTypeId)
     }
 }

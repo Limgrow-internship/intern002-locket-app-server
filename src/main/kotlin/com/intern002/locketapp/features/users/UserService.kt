@@ -1,5 +1,6 @@
 package com.intern002.locketapp.features.users
 
+import com.intern002.locketapp.core.utils.EmailAlreadyExistsException
 import com.intern002.locketapp.core.utils.Hashing
 import com.intern002.locketapp.core.utils.InvalidDateFormatException
 import com.intern002.locketapp.core.utils.UserNotFoundException
@@ -40,36 +41,49 @@ class UserService(
         val uuid = UUID.fromString(userId)
         val currentUser = authRepository.findById(uuid) ?: throw UserNotFoundException()
 
-        val newEmail = request.email?.takeIf { it != currentUser.email }
-        val newUsername = request.username?.takeIf { it != currentUser.username }
+        val newEmail = request.email?.takeIf { it.isNotBlank() && it != currentUser.email }
+        val newUsername = request.username?.takeIf { it.isNotBlank() && it != currentUser.username }
         val newPasswordHash = request.password?.let { hashing.hash(it) }
-
         val newBirthday = request.birthday?.let {
             try {
                 LocalDate.parse(it)
             } catch (_: Exception) {
                 throw InvalidDateFormatException()
             }
+        }?.takeIf { it != currentUser.birthday }
+
+        newEmail?.let {
+            if (authRepository.findByEmail(it) != null) {
+                throw EmailAlreadyExistsException()
+            }
         }
 
-        userRepository.updateUser(
-            uuid,
-            newEmail,
-            newUsername,
-            newPasswordHash,
-            newBirthday,
-            request.avatarUrl
-        )
+        val hasChanges = newEmail != null || newUsername != null || newPasswordHash != null || newBirthday != null || request.avatarUrl != currentUser.avatarUrl
 
-        val updated = authRepository.findById(uuid) ?: throw UserNotFoundException()
+        if (hasChanges) {
+            userRepository.updateUser(
+                uuid,
+                newEmail,
+                newUsername,
+                newPasswordHash,
+                newBirthday,
+                request.avatarUrl
+            )
+        }
+
+        val updatedUser = if (hasChanges) {
+            authRepository.findById(uuid) ?: throw UserNotFoundException()
+        } else {
+            currentUser
+        }
 
         return UserProfileResponse(
-            id = updated.id.toString(),
-            email = updated.email,
-            username = updated.username,
-            discriminator = updated.discriminator,
-            avatarUrl = updated.avatarUrl,
-            birthday = updated.birthday.toString()
+            id = updatedUser.id.toString(),
+            email = updatedUser.email,
+            username = updatedUser.username,
+            discriminator = updatedUser.discriminator,
+            avatarUrl = updatedUser.avatarUrl,
+            birthday = updatedUser.birthday.toString()
         )
     }
 }

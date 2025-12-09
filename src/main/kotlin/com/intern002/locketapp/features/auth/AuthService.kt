@@ -6,6 +6,8 @@ import com.intern002.locketapp.core.security.TokenClaim
 import com.intern002.locketapp.core.security.TokenConfig
 import com.intern002.locketapp.core.security.TokenProvider
 import com.intern002.locketapp.core.utils.*
+import com.intern002.locketapp.features.notifications.FcmTokenRepository
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.slf4j.LoggerFactory
 import java.util.UUID
@@ -14,7 +16,8 @@ import kotlin.random.Random
 class AuthService(
     private val authRepository: AuthRepository,
     private val tokenProvider: TokenProvider,
-    private val hashing: Hashing
+    private val hashing: Hashing,
+    private val fcmTokenRepository: FcmTokenRepository
 ) {
     private val logger = LoggerFactory.getLogger(AuthService::class.java)
 
@@ -72,6 +75,7 @@ class AuthService(
 
     suspend fun logout(userId: UUID) {
         authRepository.updateRefreshToken(userId, null)
+        fcmTokenRepository.deactivateAllTokensForUser(userId)
     }
 
     private suspend fun generateAndSaveTokens(user: User): AuthResponse {

@@ -1,8 +1,12 @@
 package com.intern002.locketapp.features.friends
 
+import com.intern002.locketapp.features.notifications.NotificationService
 import java.util.UUID
 
-class FriendshipService(private val repository: FriendshipRepository) {
+class FriendshipService(
+    private val repository: FriendshipRepository,
+    private val notificationService: NotificationService
+) {
 
     suspend fun findUser(username: String, discriminator: Int): FriendUserResponse? {
         val user = repository.findUserByUsernameAndDiscriminator(username, discriminator)
@@ -27,11 +31,24 @@ class FriendshipService(private val repository: FriendshipRepository) {
         val newFriendship = repository.sendFriendRequest(requesterId, addressee.id)
             ?: return Result.failure(Exception("A friendship or request already exists."))
 
+        // --- Send Notification ---
+        notificationService.createFriendRequestNotification(requesterId, addressee.id, newFriendship.id)
+        // -------------------------
+
         return Result.success(newFriendship)
     }
 
-    suspend fun acceptRequest(friendshipId: UUID): Boolean {
-        return repository.acceptFriendRequest(friendshipId)
+    suspend fun acceptRequest(friendshipId: UUID, currentUserId: UUID): Boolean {
+        val friendship = repository.getFriendshipById(friendshipId) ?: return false
+
+        val success = repository.acceptFriendRequest(friendshipId)
+        if (success) {
+            // --- Send Notification ---
+            val originalRequesterId = if (friendship.requesterId == currentUserId) friendship.addresseeId else friendship.requesterId
+            notificationService.createFriendAcceptNotification(originalRequesterId, currentUserId, friendshipId)
+            // -------------------------
+        }
+        return success
     }
 
     suspend fun rejectRequest(friendshipId: UUID): Boolean {

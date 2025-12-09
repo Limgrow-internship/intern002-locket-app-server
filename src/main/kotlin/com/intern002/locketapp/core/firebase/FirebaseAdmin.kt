@@ -3,28 +3,23 @@ package com.intern002.locketapp.core.firebase
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
-import io.github.cdimascio.dotenv.dotenv
-import java.io.ByteArrayInputStream
-import java.util.Base64
+import java.io.InputStream
 
 fun initFirebaseAdmin() {
-    val env = dotenv {
-        ignoreIfMissing = true
-    }
-
-    val firebaseServiceAccount = env["FIREBASE_SERVICE_ACCOUNT_BASE64"]
-        ?: System.getenv("FIREBASE_SERVICE_ACCOUNT_BASE64")
-        ?: error("FIREBASE_SERVICE_ACCOUNT_BASE64 environment variable not found.")
-
-    val decodedServiceAccount = Base64.getDecoder().decode(firebaseServiceAccount)
-
-    val serviceAccountStream = ByteArrayInputStream(decodedServiceAccount)
-
-    val options = FirebaseOptions.builder()
-        .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
-        .build()
-
     if (FirebaseApp.getApps().isEmpty()) {
+        val serviceAccount: InputStream? = 
+            Thread.currentThread().contextClassLoader.getResourceAsStream("locket-app-server-firebase-adminsdk-fbsvc-dec249bb6d.json")
+
+        if (serviceAccount == null) {
+            println("Firebase Admin SDK file not found in resources. Push notifications will not work.")
+            return
+        }
+
+        val options = FirebaseOptions.builder()
+            .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+            .build()
+
         FirebaseApp.initializeApp(options)
+        println("Firebase Admin SDK initialized successfully.")
     }
 }

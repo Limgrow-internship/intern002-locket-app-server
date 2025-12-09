@@ -17,6 +17,12 @@ data class SentFriendRequest(
 
 class FriendshipRepositoryImpl : FriendshipRepository {
 
+    override suspend fun getFriendshipById(friendshipId: UUID): Friendship? = dbQuery {
+        FriendshipsTable.select { FriendshipsTable.id eq friendshipId }
+            .map(::rowToFriendship)
+            .singleOrNull()
+    }
+
     override suspend fun findUserByUsernameAndDiscriminator(username: String, discriminator: Int): PublicUser? = dbQuery {
         UsersTable.select { (UsersTable.username eq username) and (UsersTable.discriminator eq discriminator) }
             .map(::rowToPublicUser).singleOrNull()

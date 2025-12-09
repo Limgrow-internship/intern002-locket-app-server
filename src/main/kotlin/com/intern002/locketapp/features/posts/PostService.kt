@@ -31,7 +31,6 @@ class PostService(
         val post = postRepository.createPost(userId, request)
             ?: throw PostCreationException()
 
-        // 3. Map sang Response
         return PostResponse(
             id = post.id.toString(),
             authorId = post.authorId.toString(),
