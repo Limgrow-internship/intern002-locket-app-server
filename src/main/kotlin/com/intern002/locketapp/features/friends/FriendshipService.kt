@@ -8,9 +8,21 @@ class FriendshipService(
     private val notificationService: NotificationService
 ) {
 
-    suspend fun findUser(username: String, discriminator: Int): FriendUserResponse? {
+    suspend fun findUser(searcherId: UUID, username: String, discriminator: Int): FriendUserResponse? {
         val user = repository.findUserByUsernameAndDiscriminator(username, discriminator)
-        return user?.let {
+            ?: return null
+
+        // Do not return the user if they are the one searching
+        if (user.id == searcherId) {
+            return null
+        }
+
+        // Do not return the user if they have a blocked relationship
+        if (repository.isBlocked(searcherId, user.id)) {
+            return null
+        }
+
+        return user.let {
             FriendUserResponse(
                 id = it.id.toString(),
                 username = it.username,
@@ -21,11 +33,16 @@ class FriendshipService(
     }
 
     suspend fun sendRequest(requesterId: UUID, addresseeUsername: String, addresseeDiscriminator: Int): Result<Friendship> {
+        // Note: We're not using the findUser service method here because we need the raw user object for the ID.
         val addressee = repository.findUserByUsernameAndDiscriminator(addresseeUsername, addresseeDiscriminator)
             ?: return Result.failure(Exception("User not found."))
 
         if (requesterId == addressee.id) {
             return Result.failure(Exception("You cannot add yourself as a friend."))
+        }
+        
+        if (repository.isBlocked(requesterId, addressee.id)) {
+            return Result.failure(Exception("Unable to send request. This user has blocked you or you have blocked them."))
         }
 
         val newFriendship = repository.sendFriendRequest(requesterId, addressee.id)
@@ -57,6 +74,28 @@ class FriendshipService(
 
     suspend fun unfriend(userId: UUID, friendId: UUID): Boolean {
         return repository.unfriend(userId, friendId)
+    }
+    
+    suspend fun blockFriend(blockerId: UUID, blockedId: UUID): Boolean {
+        if (blockerId == blockedId) return false
+        return repository.blockFriend(blockerId, blockedId)
+    }
+
+    suspend fun unblockFriend(blockerId: UUID, blockedId: UUID): Boolean {
+        if (blockerId == blockedId) return false
+        return repository.unblockFriend(blockerId, blockedId)
+    }
+
+    suspend fun getBlockedUsers(blockerId: UUID): List<FriendUserResponse> {
+        val users = repository.getBlockedUsers(blockerId)
+        return users.map { user ->
+            FriendUserResponse(
+                id = user.id.toString(),
+                username = user.username,
+                discriminator = user.discriminator,
+                avatarUrl = user.avatarUrl
+            )
+        }
     }
 
     suspend fun getFriendsForUser(userId: UUID): List<FriendResponse> {

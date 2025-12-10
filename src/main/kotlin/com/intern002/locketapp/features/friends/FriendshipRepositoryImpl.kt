@@ -3,6 +3,9 @@ package com.intern002.locketapp.features.friends
 import com.intern002.locketapp.core.database.DatabaseFactory.dbQuery
 import com.intern002.locketapp.core.database.tables.ConversationsTable
 import com.intern002.locketapp.core.database.tables.FriendshipsTable
+import com.intern002.locketapp.core.database.tables.FriendshipsTable.addresseeId
+import com.intern002.locketapp.core.database.tables.FriendshipsTable.requesterId
+import com.intern002.locketapp.core.database.tables.FriendshipsTable.status
 import com.intern002.locketapp.core.database.tables.UsersTable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -33,7 +36,7 @@ class FriendshipRepositoryImpl : FriendshipRepository {
             (
                     ((FriendshipsTable.requesterId eq requesterId) and (FriendshipsTable.addresseeId eq addresseeId)) or
                             ((FriendshipsTable.requesterId eq addresseeId) and (FriendshipsTable.addresseeId eq requesterId))
-                    ) and (FriendshipsTable.status inList listOf("pending", "accepted"))
+                    ) and (FriendshipsTable.status inList listOf("pending", "accepted", "blocked"))
         }.singleOrNull()
 
         if (activeOrPendingFriendship != null) {
@@ -104,6 +107,54 @@ class FriendshipRepositoryImpl : FriendshipRepository {
                     (status eq "accepted")
         }
         deletedRows > 0
+    }
+
+    override suspend fun blockFriend(blockerId: UUID, blockedId: UUID): Boolean = dbQuery {
+        FriendshipsTable.update(
+            where = {
+                (((FriendshipsTable.requesterId eq blockerId) and (FriendshipsTable.addresseeId eq blockedId)) or
+                        ((FriendshipsTable.requesterId eq blockedId) and (FriendshipsTable.addresseeId eq blockerId))) and
+                        (FriendshipsTable.status eq "accepted")
+            }
+        ) {
+            it[status] = "blocked"
+            it[requesterId] = blockerId
+            it[addresseeId] = blockedId
+            it[updatedAt] = CurrentTimestamp()
+        } > 0
+    }
+
+    override suspend fun unblockFriend(blockerId: UUID, blockedId: UUID): Boolean = dbQuery {
+        FriendshipsTable.update(
+            where = {
+                (status eq "blocked") and
+                        (requesterId eq blockerId) and 
+                        (addresseeId eq blockedId)
+            }
+        ) {
+            it[status] = "accepted"
+            it[updatedAt] = CurrentTimestamp()
+        } > 0
+    }
+
+    override suspend fun isBlocked(userId1: UUID, userId2: UUID): Boolean = dbQuery {
+        FriendshipsTable.select {
+            (((requesterId eq userId1) and (addresseeId eq userId2)) or
+                    ((requesterId eq userId2) and (addresseeId eq userId1))) and
+                    (status eq "blocked")
+        }.count() > 0
+    }
+
+    override suspend fun getBlockedUsers(blockerId: UUID): List<PublicUser> = dbQuery {
+        val blockedIds = FriendshipsTable.select {
+            (FriendshipsTable.requesterId eq blockerId) and (FriendshipsTable.status eq "blocked")
+        }.map { it[FriendshipsTable.addresseeId] }
+
+        if (blockedIds.isEmpty()) {
+            return@dbQuery emptyList()
+        }
+
+        UsersTable.select { UsersTable.id inList blockedIds }.map(::rowToPublicUser)
     }
 
     override suspend fun getFriendshipStatus(userId1: UUID, userId2: UUID): Friendship? = dbQuery {

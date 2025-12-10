@@ -12,7 +12,7 @@ object FriendshipsTable : Table("friendships") {
     val addresseeId = uuid("addressee_id").references(UsersTable.id, onDelete = ReferenceOption.CASCADE)
     val status =
         text("status").default("pending").check {
-            it inList listOf("pending", "accepted", "rejected")
+            it inList listOf("pending", "accepted", "rejected", "blocked")
         }
 
     val conversationId =

@@ -24,6 +24,11 @@ interface FriendshipRepository {
 
     suspend fun unfriend(userId: UUID, friendId: UUID): Boolean
 
+    suspend fun blockFriend(blockerId: UUID, blockedId: UUID): Boolean
+    suspend fun unblockFriend(blockerId: UUID, blockedId: UUID): Boolean
+    suspend fun isBlocked(userId1: UUID, userId2: UUID): Boolean
+    suspend fun getBlockedUsers(blockerId: UUID): List<PublicUser>
+
     suspend fun getFriendshipStatus(userId1: UUID, userId2: UUID): Friendship?
 
     suspend fun getFriends(userId: UUID): List<PublicUser>

@@ -20,15 +20,16 @@ class ChatRepositoryImpl : ChatRepository {
 
     override suspend fun getConversations(userId: UUID): List<ConversationListItemDTO> = dbQuery {
         val friendships = FriendshipsTable
-            .slice(FriendshipsTable.conversationId, FriendshipsTable.requesterId, FriendshipsTable.addresseeId)
+            .slice(FriendshipsTable.conversationId, FriendshipsTable.requesterId, FriendshipsTable.addresseeId, FriendshipsTable.status)
             .select {
                 ((FriendshipsTable.requesterId eq userId) or (FriendshipsTable.addresseeId eq userId)) and
-                        (FriendshipsTable.status eq "accepted")
+                        (FriendshipsTable.status inList listOf("accepted", "blocked")) and
+                        (FriendshipsTable.conversationId.isNotNull())
             }
             .map {
                 val convId = it[FriendshipsTable.conversationId]
                 val partnerId = if (it[FriendshipsTable.requesterId] == userId) it[FriendshipsTable.addresseeId] else it[FriendshipsTable.requesterId]
-                convId to partnerId
+                Triple(convId, partnerId, it[FriendshipsTable.status])
             }
 
         val convIds = friendships.mapNotNull { it.first }
@@ -36,6 +37,7 @@ class ChatRepositoryImpl : ChatRepository {
 
         val partnerIds = friendships.map { it.second }
 
+        // 2. Batch fetch partner details
         val partners = UsersTable
             .select { UsersTable.id inList partnerIds }
             .associate {
@@ -46,11 +48,13 @@ class ChatRepositoryImpl : ChatRepository {
                 )
             }
 
+        // 3. Batch fetch conversation creation dates
         val conversations = ConversationsTable
             .slice(ConversationsTable.id, ConversationsTable.createdAt)
             .select { ConversationsTable.id inList convIds }
             .associate { it[ConversationsTable.id] to it[ConversationsTable.createdAt] }
 
+        // 4. Batch fetch the last message for each conversation
         val maxCreatedAt = MessagesTable.createdAt.max()
         val lastMessageSubQuery = MessagesTable
             .slice(MessagesTable.conversationId, maxCreatedAt)
@@ -70,14 +74,16 @@ class ChatRepositoryImpl : ChatRepository {
         } else {
             emptyMap()
         }
-        
+
+        // 5. Batch fetch unread counts
         val unreadCounts = MessagesTable
             .slice(MessagesTable.conversationId, MessagesTable.id.count())
             .select { (MessagesTable.conversationId inList convIds) and (MessagesTable.isRead eq false) and (MessagesTable.senderId neq userId) }
             .groupBy(MessagesTable.conversationId)
             .associate { it[MessagesTable.conversationId] to it[MessagesTable.id.count()].toInt() }
 
-        val results = friendships.mapNotNull { (convId, partnerId) ->
+        // 6. Combine the results
+        val results = friendships.mapNotNull { (convId, partnerId, status) ->
             if (convId == null) return@mapNotNull null
             val partner = partners[partnerId] ?: return@mapNotNull null
             val conversationCreatedAt = conversations[convId] ?: return@mapNotNull null
@@ -88,10 +94,12 @@ class ChatRepositoryImpl : ChatRepository {
                 partner = partner,
                 lastMessage = lastMessage,
                 unreadCount = unreadCounts[convId] ?: 0,
-                createdAt = conversationCreatedAt
+                createdAt = conversationCreatedAt,
+                friendshipStatus = status
             )
         }
 
+        // 7. Sort the final list
         results.sortedByDescending { it.lastMessage?.createdAt ?: it.createdAt }
     }
 
@@ -123,7 +131,7 @@ class ChatRepositoryImpl : ChatRepository {
         val isParticipant = FriendshipsTable.select {
             (FriendshipsTable.conversationId eq conversationId) and
                     ((FriendshipsTable.requesterId eq userId) or (FriendshipsTable.addresseeId eq userId)) and
-                    (FriendshipsTable.status eq "accepted")
+                    (FriendshipsTable.status inList listOf("accepted", "blocked"))
         }.count() > 0
 
         if (!isParticipant) {

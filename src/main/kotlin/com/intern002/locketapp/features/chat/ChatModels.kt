@@ -31,7 +31,8 @@ data class ConversationListItemDTO(
     val partner: ConversationPartnerDTO,
     val lastMessage: MessageDTO?,
     val unreadCount: Int,
-    val createdAt: Instant
+    val createdAt: Instant,
+    val friendshipStatus: String
 )
 
 @Serializable
