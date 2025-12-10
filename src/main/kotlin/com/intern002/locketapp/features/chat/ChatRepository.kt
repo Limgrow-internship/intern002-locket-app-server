@@ -8,4 +8,5 @@ interface ChatRepository {
     suspend fun saveMessage(senderId: UUID, request: SendMessageRequest): MessageDTO?
     suspend fun getMessages(userId: UUID, conversationId: UUID, page: Int, pageSize: Int): List<MessageDTO>
     suspend fun markMessagesAsRead(conversationId: UUID, userId: UUID): Int
+    suspend fun deleteMessage(userId: UUID, messageId: UUID): Boolean
 }

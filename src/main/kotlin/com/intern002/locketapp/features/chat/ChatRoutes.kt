@@ -24,6 +24,19 @@ fun Route.chatRoutes(chatService: ChatService) {
             call.respond(HttpStatusCode.Created, newMessage)
         }
 
+        delete("/messages/{messageId}") {
+            val principal = call.principal<UserIdPrincipal>() ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+            val messageId = call.parameters["messageId"]?.let { UUID.fromString(it) } ?: return@delete call.respond(HttpStatusCode.BadRequest, "Invalid message ID")
+
+            val success = chatService.deleteMessage(principal.userId, messageId)
+
+            if (success) {
+                call.respond(HttpStatusCode.NoContent)
+            } else {
+                call.respond(HttpStatusCode.Forbidden, "You can only delete your own messages.")
+            }
+        }
+
         get("/messages/{conversationId}") {
             val principal = call.principal<UserIdPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
             val conversationId = call.parameters["conversationId"]?.let { UUID.fromString(it) } ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid conversation ID")

@@ -19,11 +19,12 @@ class ChatRepositoryImpl : ChatRepository {
     }
 
     override suspend fun getConversations(userId: UUID): List<ConversationListItemDTO> = dbQuery {
+        // 1. Get all accepted or blocked friendships to find partner IDs and conversation IDs
         val friendships = FriendshipsTable
             .slice(FriendshipsTable.conversationId, FriendshipsTable.requesterId, FriendshipsTable.addresseeId, FriendshipsTable.status)
             .select {
                 ((FriendshipsTable.requesterId eq userId) or (FriendshipsTable.addresseeId eq userId)) and
-                        (FriendshipsTable.status inList listOf("accepted", "blocked")) and
+                        (FriendshipsTable.status inList listOf("accepted", "blocked")) and // Include blocked
                         (FriendshipsTable.conversationId.isNotNull())
             }
             .map {
@@ -156,6 +157,12 @@ class ChatRepositoryImpl : ChatRepository {
         ) {
             it[isRead] = true
         }
+    }
+
+    override suspend fun deleteMessage(userId: UUID, messageId: UUID): Boolean = dbQuery {
+        MessagesTable.deleteWhere {
+            (id eq messageId) and (senderId eq userId)
+        } > 0
     }
 
     private fun toMessageDTO(row: ResultRow): MessageDTO {

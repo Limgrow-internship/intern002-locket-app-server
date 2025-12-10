@@ -45,6 +45,10 @@ class ChatService(
         return chatRepository.markMessagesAsRead(conversationId, userId)
     }
 
+    suspend fun deleteMessage(userId: UUID, messageId: UUID): Boolean {
+        return chatRepository.deleteMessage(userId, messageId)
+    }
+
     private fun validateRequest(request: SendMessageRequest) {
         when (request.messageType) {
             "text" -> if (request.content.isNullOrBlank()) throw BadRequestException("Content cannot be empty for text messages.")
