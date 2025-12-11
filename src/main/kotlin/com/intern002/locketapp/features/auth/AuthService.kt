@@ -5,19 +5,22 @@ import com.google.firebase.auth.FirebaseAuthException
 import com.intern002.locketapp.core.security.TokenClaim
 import com.intern002.locketapp.core.security.TokenConfig
 import com.intern002.locketapp.core.security.TokenProvider
+import com.intern002.locketapp.core.services.EmailService
 import com.intern002.locketapp.core.utils.*
 import com.intern002.locketapp.features.notifications.FcmTokenRepository
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 import kotlin.random.Random
 
 class AuthService(
     private val authRepository: AuthRepository,
     private val tokenProvider: TokenProvider,
     private val hashing: Hashing,
-    private val fcmTokenRepository: FcmTokenRepository
+    private val fcmTokenRepository: FcmTokenRepository,
+    private val emailService: EmailService
 ) {
     private val logger = LoggerFactory.getLogger(AuthService::class.java)
 
@@ -27,10 +30,22 @@ class AuthService(
 
     suspend fun register(request: RegisterRequest): AuthResponse {
         if (authRepository.findByEmail(request.email) != null) throw EmailAlreadyExistsException()
-        val birthday = try { LocalDate.parse(request.birthday) } catch (e: Exception) { throw InvalidDateFormatException() }
+        val birthday = try {
+            LocalDate.parse(request.birthday)
+        } catch (e: Exception) {
+            throw InvalidDateFormatException()
+        }
         val discriminator = generateUniqueDiscriminator(request.username)
         val passwordHash = hashing.hash(request.password)
-        val user = authRepository.createUser(request.email, request.username, passwordHash, birthday, discriminator, "email", null) ?: throw CreateUserFailedException()
+        val user = authRepository.createUser(
+            request.email,
+            request.username,
+            passwordHash,
+            birthday,
+            discriminator,
+            "email",
+            null
+        ) ?: throw CreateUserFailedException()
         return generateAndSaveTokens(user)
     }
 
@@ -45,22 +60,40 @@ class AuthService(
 
     suspend fun handleGoogleLogin(idToken: String): GoogleLoginResult {
         val decodedToken = verifyGoogleToken(idToken)
-        authRepository.findByProviderId(decodedToken.uid)?.let { return GoogleLoginResult.Success(generateAndSaveTokens(it)) }
+        authRepository.findByProviderId(decodedToken.uid)
+            ?.let { return GoogleLoginResult.Success(generateAndSaveTokens(it)) }
         val email = decodedToken.email ?: throw GoogleTokenInvalidException("Email not found in token.")
         authRepository.findByEmail(email)?.let {
             authRepository.linkGoogleAccount(it.id, decodedToken.uid)
             return GoogleLoginResult.Success(generateAndSaveTokens(it))
         }
-        return GoogleLoginResult.RegistrationRequired(GoogleRegistrationInfo(email = email, suggestedUsername = decodedToken.name ?: email.substringBefore('@')))
+        return GoogleLoginResult.RegistrationRequired(
+            GoogleRegistrationInfo(
+                email = email,
+                suggestedUsername = decodedToken.name ?: email.substringBefore('@')
+            )
+        )
     }
 
     suspend fun completeGoogleRegistration(request: CompleteGoogleRegistrationRequest): AuthResponse {
         val decodedToken = verifyGoogleToken(request.idToken)
         if (authRepository.findByProviderId(decodedToken.uid) != null) throw UserAlreadyExistsException()
         if (authRepository.findByEmail(decodedToken.email) != null) throw EmailAlreadyExistsException()
-        val birthday = try { LocalDate.parse(request.birthday) } catch (e: Exception) { throw InvalidDateFormatException() }
+        val birthday = try {
+            LocalDate.parse(request.birthday)
+        } catch (e: Exception) {
+            throw InvalidDateFormatException()
+        }
         val discriminator = generateUniqueDiscriminator(request.username)
-        val newUser = authRepository.createUser(decodedToken.email, request.username, null, birthday, discriminator, "google", decodedToken.uid) ?: throw CreateUserFailedException()
+        val newUser = authRepository.createUser(
+            decodedToken.email,
+            request.username,
+            null,
+            birthday,
+            discriminator,
+            "google",
+            decodedToken.uid
+        ) ?: throw CreateUserFailedException()
         return generateAndSaveTokens(newUser)
     }
 
@@ -119,5 +152,26 @@ class AuthService(
         val timestamp = System.currentTimeMillis()
         val randomPart = UUID.randomUUID().toString() + UUID.randomUUID().toString()
         return "$timestamp:$randomPart"
+    }
+
+    suspend fun forgotPassword(email: String) {
+        if (!checkEmailExists(email)) return
+
+        val code = (100000..999999).random().toString()
+        OtpStore.saveOtp(email, code)
+
+        withContext(Dispatchers.IO) {
+            emailService.sendResetPasswordEmail(email, code)
+        }
+        println("📧 [OTP] Gửi đến $email: $code (Hết hạn sau 5p)")
+    }
+
+    suspend fun resetPassword(request: ResetPasswordRequest) {
+        val isValid = OtpStore.verifyOtp(request.email, request.code)
+        if (!isValid) {
+            throw IllegalArgumentException("Invalid or expired code.")
+        }
+        val newHash = hashing.hash(request.newPassword)
+        authRepository.updatePassword(request.email, newHash)
     }
 }

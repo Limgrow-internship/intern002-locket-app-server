@@ -1,7 +1,6 @@
 package com.intern002.locketapp.features.auth
 
 import io.ktor.http.*
-import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -40,6 +39,7 @@ fun Route.authRoutes(authService: AuthService) {
                 is GoogleLoginResult.Success -> {
                     call.respond(HttpStatusCode.OK, result.authResponse)
                 }
+
                 is GoogleLoginResult.RegistrationRequired -> {
                     call.respond(HttpStatusCode.Accepted, result.info)
                 }
@@ -56,6 +56,22 @@ fun Route.authRoutes(authService: AuthService) {
             val req = call.receive<RefreshRequest>()
             val response = authService.refreshToken(req.refreshToken)
             call.respond(HttpStatusCode.OK, response)
+        }
+
+        post("/forgot-password") {
+            val request = call.receive<ForgotPasswordRequest>()
+            authService.forgotPassword(request.email)
+            call.respond(HttpStatusCode.OK, mapOf("message" to "If email exists, OTP sent."))
+        }
+
+        post("/reset-password") {
+            val request = call.receive<ResetPasswordRequest>()
+            try {
+                authService.resetPassword(request)
+                call.respond(HttpStatusCode.OK, mapOf("message" to "Password updated! Login now."))
+            } catch (e: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Error")))
+            }
         }
     }
 }

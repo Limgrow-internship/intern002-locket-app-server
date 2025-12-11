@@ -2,6 +2,7 @@ package com.intern002.locketapp.di
 
 import com.intern002.locketapp.core.security.JwtTokenProvider
 import com.intern002.locketapp.core.security.TokenProvider
+import com.intern002.locketapp.core.services.EmailService
 import com.intern002.locketapp.core.utils.BcryptHashing
 import com.intern002.locketapp.core.utils.Hashing
 import com.intern002.locketapp.features.auth.AuthRepository
@@ -23,6 +24,7 @@ import com.intern002.locketapp.features.reaction.ReactionService
 import com.intern002.locketapp.features.users.UserRepository
 import com.intern002.locketapp.features.users.UserRepositoryImpl
 import com.intern002.locketapp.features.users.UserService
+import io.github.cdimascio.dotenv.dotenv
 import org.koin.dsl.module
 
 val appModule = module {
@@ -30,7 +32,7 @@ val appModule = module {
     single<TokenProvider> { JwtTokenProvider() }
 
     single<AuthRepository> { AuthRepositoryImpl() }
-    single { AuthService(get(), get(), get(), get()) }
+    single { AuthService(get(), get(), get(), get(), get()) }
 
     single<UserRepository> { UserRepositoryImpl() }
     single { UserService(get(), get(), get()) }
@@ -55,4 +57,18 @@ val appModule = module {
     single { FcmTokenService(get()) }
     single { FCMService(get()) }
     single { NotificationService(get(), get(), get(), get()) }
+
+    single {
+
+        val dotenv = dotenv {
+            ignoreIfMissing = true
+        }
+
+        EmailService(
+            host = dotenv["SMTP_HOST"] ?: "smtp.gmail.com",
+            port = dotenv["SMTP_PORT"]?.toInt() ?: 587,
+            user = dotenv["SMTP_USER"] ?: "",
+            pass = dotenv["SMTP_PASSWORD"] ?: ""
+        )
+    }
 }

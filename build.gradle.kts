@@ -36,7 +36,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.41.1")
 
     //  Database driver + connection pool 
-    implementation("org.postgresql:postgresql:42.7.3") 
+    implementation("org.postgresql:postgresql:42.7.3")
     implementation("com.zaxxer:HikariCP:5.1.0")
 
     // Dependency Injection (Koin)
@@ -55,6 +55,9 @@ dependencies {
 
     //  Firebase 
     implementation("com.google.firebase:firebase-admin:9.2.0")
+
+    //Email
+    implementation("org.apache.commons:commons-email:1.5")
 
     //  Test 
     testImplementation(libs.ktor.server.test.host)
