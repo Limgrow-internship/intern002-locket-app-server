@@ -37,6 +37,7 @@ interface AuthRepository {
     suspend fun linkGoogleAccount(userId: UUID, providerId: String): Boolean
     suspend fun updateRefreshToken(userId: UUID, refreshToken: String?): Boolean
     suspend fun findUserByRefreshToken(refreshToken: String): User?
+    suspend fun updateUser(userId: UUID, email: String?, username: String?, passwordHash: String?, birthday: LocalDate?, avatarUrl: String?): Boolean
 }
 
 class AuthRepositoryImpl : AuthRepository {
@@ -115,5 +116,15 @@ class AuthRepositoryImpl : AuthRepository {
         UsersTable.select { UsersTable.refreshToken eq refreshToken }
             .map(::toUser)
             .singleOrNull()
+    }
+
+    override suspend fun updateUser(userId: UUID, email: String?, username: String?, passwordHash: String?, birthday: LocalDate?, avatarUrl: String?): Boolean = dbQuery {
+        UsersTable.update({ UsersTable.id eq userId }) {
+            email?.let { newEmail -> it[UsersTable.email] = newEmail }
+            username?.let { newUsername -> it[UsersTable.username] = newUsername }
+            passwordHash?.let { newPasswordHash -> it[UsersTable.passwordHash] = newPasswordHash }
+            birthday?.let { newBirthday -> it[UsersTable.birthday] = newBirthday }
+            avatarUrl?.let { newAvatarUrl -> it[UsersTable.avatarUrl] = newAvatarUrl }
+        } > 0
     }
 }

@@ -1,7 +1,6 @@
 package com.intern002.locketapp.features.chat
 
 import com.intern002.locketapp.core.utils.UUIDSerializer
-import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import java.util.UUID
 
@@ -20,7 +19,7 @@ data class MessageDTO(
     val messageType: String,
     val content: String?,
     val imageUrl: String?,
-    val createdAt: Instant,
+    val createdAt: String,
     val isRead: Boolean
 )
 
@@ -31,7 +30,7 @@ data class ConversationListItemDTO(
     val partner: ConversationPartnerDTO,
     val lastMessage: MessageDTO?,
     val unreadCount: Int,
-    val createdAt: Instant,
+    val createdAt: String,
     val friendshipStatus: String
 )
 

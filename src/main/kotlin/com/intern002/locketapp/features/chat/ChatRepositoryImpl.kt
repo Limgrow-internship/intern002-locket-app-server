@@ -19,7 +19,6 @@ class ChatRepositoryImpl : ChatRepository {
     }
 
     override suspend fun getConversations(userId: UUID): List<ConversationListItemDTO> = dbQuery {
-        // 1. Get all accepted or blocked friendships to find partner IDs and conversation IDs
         val friendships = FriendshipsTable
             .slice(FriendshipsTable.conversationId, FriendshipsTable.requesterId, FriendshipsTable.addresseeId, FriendshipsTable.status)
             .select {
@@ -38,7 +37,6 @@ class ChatRepositoryImpl : ChatRepository {
 
         val partnerIds = friendships.map { it.second }
 
-        // 2. Batch fetch partner details
         val partners = UsersTable
             .select { UsersTable.id inList partnerIds }
             .associate {
@@ -49,13 +47,11 @@ class ChatRepositoryImpl : ChatRepository {
                 )
             }
 
-        // 3. Batch fetch conversation creation dates
         val conversations = ConversationsTable
             .slice(ConversationsTable.id, ConversationsTable.createdAt)
             .select { ConversationsTable.id inList convIds }
             .associate { it[ConversationsTable.id] to it[ConversationsTable.createdAt] }
 
-        // 4. Batch fetch the last message for each conversation
         val maxCreatedAt = MessagesTable.createdAt.max()
         val lastMessageSubQuery = MessagesTable
             .slice(MessagesTable.conversationId, maxCreatedAt)
@@ -76,14 +72,12 @@ class ChatRepositoryImpl : ChatRepository {
             emptyMap()
         }
 
-        // 5. Batch fetch unread counts
         val unreadCounts = MessagesTable
             .slice(MessagesTable.conversationId, MessagesTable.id.count())
             .select { (MessagesTable.conversationId inList convIds) and (MessagesTable.isRead eq false) and (MessagesTable.senderId neq userId) }
             .groupBy(MessagesTable.conversationId)
             .associate { it[MessagesTable.conversationId] to it[MessagesTable.id.count()].toInt() }
 
-        // 6. Combine the results
         val results = friendships.mapNotNull { (convId, partnerId, status) ->
             if (convId == null) return@mapNotNull null
             val partner = partners[partnerId] ?: return@mapNotNull null
@@ -95,12 +89,11 @@ class ChatRepositoryImpl : ChatRepository {
                 partner = partner,
                 lastMessage = lastMessage,
                 unreadCount = unreadCounts[convId] ?: 0,
-                createdAt = conversationCreatedAt,
+                createdAt = conversationCreatedAt.toString(),
                 friendshipStatus = status
             )
         }
 
-        // 7. Sort the final list
         results.sortedByDescending { it.lastMessage?.createdAt ?: it.createdAt }
     }
 
@@ -151,7 +144,7 @@ class ChatRepositoryImpl : ChatRepository {
         MessagesTable.update(
             where = {
                 (MessagesTable.conversationId eq conversationId) and
-                        (MessagesTable.senderId neq userId) and // Only mark messages sent by the other person
+                        (MessagesTable.senderId neq userId) and
                         (MessagesTable.isRead eq false)
             }
         ) {
@@ -171,7 +164,7 @@ class ChatRepositoryImpl : ChatRepository {
             messageType = row[MessagesTable.messageType],
             content = row[MessagesTable.content],
             imageUrl = row[MessagesTable.imageUrl],
-            createdAt = row[MessagesTable.createdAt],
+            createdAt = row[MessagesTable.createdAt].toString(),
             isRead = row[MessagesTable.isRead]
         )
     }
