@@ -160,6 +160,7 @@ class ChatRepositoryImpl : ChatRepository {
 
     private fun toMessageDTO(row: ResultRow): MessageDTO {
         return MessageDTO(
+            id = row[MessagesTable.id],
             senderId = row[MessagesTable.senderId],
             messageType = row[MessagesTable.messageType],
             content = row[MessagesTable.content],

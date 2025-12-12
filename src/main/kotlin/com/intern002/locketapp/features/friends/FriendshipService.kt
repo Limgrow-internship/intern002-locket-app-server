@@ -12,12 +12,10 @@ class FriendshipService(
         val user = repository.findUserByUsernameAndDiscriminator(username, discriminator)
             ?: return null
 
-        // Do not return the user if they are the one searching
         if (user.id == searcherId) {
             return null
         }
 
-        // Do not return the user if they have a blocked relationship
         if (repository.isBlocked(searcherId, user.id)) {
             return null
         }
@@ -33,7 +31,6 @@ class FriendshipService(
     }
 
     suspend fun sendRequest(requesterId: UUID, addresseeUsername: String, addresseeDiscriminator: Int): Result<Friendship> {
-        // Note: We're not using the findUser service method here because we need the raw user object for the ID.
         val addressee = repository.findUserByUsernameAndDiscriminator(addresseeUsername, addresseeDiscriminator)
             ?: return Result.failure(Exception("User not found."))
 

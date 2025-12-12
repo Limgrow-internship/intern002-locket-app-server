@@ -15,6 +15,8 @@ data class ConversationPartnerDTO(
 @Serializable
 data class MessageDTO(
     @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    @Serializable(with = UUIDSerializer::class)
     val senderId: UUID,
     val messageType: String,
     val content: String?,
