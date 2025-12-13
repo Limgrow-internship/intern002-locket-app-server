@@ -167,11 +167,16 @@ class AuthService(
     }
 
     suspend fun resetPassword(request: ResetPasswordRequest) {
-        val isValid = OtpStore.verifyOtp(request.email, request.code)
+        val isValid = OtpStore.verifyOtp(request.email, request.otp)
         if (!isValid) {
             throw IllegalArgumentException("Invalid or expired code.")
         }
         val newHash = hashing.hash(request.newPassword)
         authRepository.updatePassword(request.email, newHash)
+    }
+
+    suspend fun verifyCodeOnly(email: String, code: String) {
+        val isValid = OtpStore.verifyOtp(email, code)
+        if (!isValid) throw IllegalArgumentException("Invalid or expired code")
     }
 }

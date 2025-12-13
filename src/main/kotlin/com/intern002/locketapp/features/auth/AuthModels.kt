@@ -50,8 +50,14 @@ data class ForgotPasswordRequest(
 @Serializable
 data class ResetPasswordRequest(
     val email: String,
-    val code: String, // Mã OTP
+    val otp: String,
     val newPassword: String
+)
+
+@Serializable
+data class VerifyOtpRequest(
+    val email: String,
+    val otp: String,
 )
 
 

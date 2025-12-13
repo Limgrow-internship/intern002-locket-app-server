@@ -73,5 +73,18 @@ fun Route.authRoutes(authService: AuthService) {
                 call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Error")))
             }
         }
+
+        post("/verify-otp") {
+            val request = call.receive<VerifyOtpRequest>()
+            val email = request.email
+            val otp = request.otp
+
+            try {
+                authService.verifyCodeOnly(email, otp)
+                call.respond(HttpStatusCode.OK, mapOf("message" to "Code is valid"))
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Invalid code")))
+            }
+        }
     }
 }

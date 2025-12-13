@@ -19,12 +19,10 @@ object OtpStore {
         val entry = store[email] ?: return false
 
         if (System.currentTimeMillis() > entry.expiresAt) {
-            store.remove(email)
             return false
         }
 
         if (entry.code == inputCode) {
-            store.remove(email)
             return true
         }
 
