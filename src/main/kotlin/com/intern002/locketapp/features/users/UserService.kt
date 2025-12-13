@@ -92,4 +92,9 @@ class UserService(
         val uuid = UUID.fromString(userId)
         return userRepository.setAvatarUrl(uuid, null)
     }
+
+    suspend fun deleteAccount(userId: String): Boolean {
+        val uuid = UUID.fromString(userId)
+        return userRepository.deleteUser(uuid)
+    }
 }

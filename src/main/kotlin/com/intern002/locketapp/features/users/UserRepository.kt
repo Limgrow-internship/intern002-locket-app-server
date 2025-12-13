@@ -4,6 +4,7 @@ import com.intern002.locketapp.core.database.DatabaseFactory.dbQuery
 import com.intern002.locketapp.core.database.tables.UsersTable
 import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import java.util.UUID
 
 data class User(
@@ -24,6 +25,7 @@ interface UserRepository {
     suspend fun createUser(email: String, username: String, passwordHash: String, birthday: LocalDate, discriminator: Int): User?
     suspend fun updateUser(userId: UUID, email: String?, username: String?, passwordHash: String?, birthday: LocalDate?, avatarUrl: String?): Boolean
     suspend fun setAvatarUrl(userId: UUID, avatarUrl: String?): Boolean
+    suspend fun deleteUser(userId: UUID): Boolean
 }
 
 class UserRepositoryImpl : UserRepository {
@@ -87,5 +89,9 @@ class UserRepositoryImpl : UserRepository {
         UsersTable.update({ UsersTable.id eq userId }) {
             it[UsersTable.avatarUrl] = avatarUrl
         } > 0
+    }
+
+    override suspend fun deleteUser(userId: UUID): Boolean = dbQuery {
+        UsersTable.deleteWhere { id eq userId } > 0
     }
 }

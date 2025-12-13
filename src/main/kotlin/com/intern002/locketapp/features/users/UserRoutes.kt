@@ -35,6 +35,16 @@ fun Route.userRoutes(userService: UserService, authService: AuthService) {
             }
         }
 
+        delete("/users/me") {
+            val principal = call.principal<UserIdPrincipal>()!!
+            val success = userService.deleteAccount(principal.userId.toString())
+            if (success) {
+                call.respond(HttpStatusCode.OK, "Account deleted successfully.")
+            } else {
+                call.respond(HttpStatusCode.NotFound, "User not found or account could not be deleted.")
+            }
+        }
+
         post("/users/verify-password") {
             val principal = call.principal<UserIdPrincipal>()!!
             val request = call.receive<VerifyPasswordRequest>()
