@@ -3,6 +3,7 @@ package com.intern002.locketapp.features.users
 import com.intern002.locketapp.core.utils.EmailAlreadyExistsException
 import com.intern002.locketapp.core.utils.Hashing
 import com.intern002.locketapp.core.utils.InvalidDateFormatException
+import com.intern002.locketapp.core.utils.NoChangesMadeException
 import com.intern002.locketapp.core.utils.UserNotFoundException
 import com.intern002.locketapp.features.auth.AuthRepository
 import kotlinx.datetime.LocalDate
@@ -58,24 +59,24 @@ class UserService(
             }
         }
 
-        val hasChanges = newEmail != null || newUsername != null || newPasswordHash != null || newBirthday != null || request.avatarUrl != currentUser.avatarUrl
+        val avatarChanged = request.avatarUrl != null && request.avatarUrl != currentUser.avatarUrl
 
-        if (hasChanges) {
-            userRepository.updateUser(
-                uuid,
-                newEmail,
-                newUsername,
-                newPasswordHash,
-                newBirthday,
-                request.avatarUrl
-            )
+        val hasChanges = newEmail != null || newUsername != null || newPasswordHash != null || newBirthday != null || avatarChanged
+
+        if (!hasChanges) {
+            throw NoChangesMadeException()
         }
 
-        val updatedUser = if (hasChanges) {
-            authRepository.findById(uuid) ?: throw UserNotFoundException()
-        } else {
-            currentUser
-        }
+        userRepository.updateUser(
+            uuid,
+            newEmail,
+            newUsername,
+            newPasswordHash,
+            newBirthday,
+            request.avatarUrl
+        )
+
+        val updatedUser = authRepository.findById(uuid) ?: throw UserNotFoundException()
 
         return UserProfileResponse(
             id = updatedUser.id.toString(),
@@ -85,5 +86,10 @@ class UserService(
             avatarUrl = updatedUser.avatarUrl,
             birthday = updatedUser.birthday.toString()
         )
+    }
+
+    suspend fun deleteAvatar(userId: String): Boolean {
+        val uuid = UUID.fromString(userId)
+        return userRepository.setAvatarUrl(uuid, null)
     }
 }

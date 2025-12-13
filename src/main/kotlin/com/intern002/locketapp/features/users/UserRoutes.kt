@@ -25,6 +25,16 @@ fun Route.userRoutes(userService: UserService, authService: AuthService) {
             call.respond(HttpStatusCode.OK, updated)
         }
 
+        delete("/users/avatar") {
+            val principal = call.principal<UserIdPrincipal>()!!
+            val success = userService.deleteAvatar(principal.userId.toString())
+            if (success) {
+                call.respond(HttpStatusCode.OK, "Avatar deleted successfully.")
+            } else {
+                call.respond(HttpStatusCode.NotFound, "User not found or avatar could not be deleted.")
+            }
+        }
+
         post("/users/verify-password") {
             val principal = call.principal<UserIdPrincipal>()!!
             val request = call.receive<VerifyPasswordRequest>()

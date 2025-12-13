@@ -16,6 +16,8 @@ class WrongPasswordException: ServiceException(HttpStatusCode.Unauthorized, "The
 class EmailAlreadyExistsException : ServiceException(HttpStatusCode.Conflict, "A user with this email already exists.")
 class UserAlreadyExistsException : ServiceException(HttpStatusCode.Conflict, "This user has already been created.")
 class UsernameAlreadyTakenException(username: String) : ServiceException(HttpStatusCode.Conflict, "Username '$username' is already taken.")
+class NoChangesMadeException : ServiceException(HttpStatusCode.Conflict, "No changes were made.")
+
 
 // (400 - Bad Request)
 class InvalidDateFormatException : ServiceException(HttpStatusCode.BadRequest, "Invalid date format. Please use YYYY-MM-DD.")

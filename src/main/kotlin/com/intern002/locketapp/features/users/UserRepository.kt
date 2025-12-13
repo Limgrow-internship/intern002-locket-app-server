@@ -23,6 +23,7 @@ interface UserRepository {
     suspend fun findByUsernameAndDiscriminator(username: String, discriminator: Int): User?
     suspend fun createUser(email: String, username: String, passwordHash: String, birthday: LocalDate, discriminator: Int): User?
     suspend fun updateUser(userId: UUID, email: String?, username: String?, passwordHash: String?, birthday: LocalDate?, avatarUrl: String?): Boolean
+    suspend fun setAvatarUrl(userId: UUID, avatarUrl: String?): Boolean
 }
 
 class UserRepositoryImpl : UserRepository {
@@ -79,6 +80,12 @@ class UserRepositoryImpl : UserRepository {
             passwordHash?.let { newPasswordHash -> it[UsersTable.passwordHash] = newPasswordHash }
             birthday?.let { newBirthday -> it[UsersTable.birthday] = newBirthday }
             avatarUrl?.let { newAvatarUrl -> it[UsersTable.avatarUrl] = newAvatarUrl }
+        } > 0
+    }
+
+    override suspend fun setAvatarUrl(userId: UUID, avatarUrl: String?): Boolean = dbQuery {
+        UsersTable.update({ UsersTable.id eq userId }) {
+            it[UsersTable.avatarUrl] = avatarUrl
         } > 0
     }
 }
