@@ -8,7 +8,7 @@ import java.io.InputStream
 fun initFirebaseAdmin() {
     if (FirebaseApp.getApps().isEmpty()) {
         val serviceAccount: InputStream? = 
-            Thread.currentThread().contextClassLoader.getResourceAsStream("locket-app-server-firebase-adminsdk-fbsvc-dec249bb6d.json")
+            Thread.currentThread().contextClassLoader.getResourceAsStream("locket-app-server-firebase-adminsdk-fbsvc-71bc39aed9.json")
 
         if (serviceAccount == null) {
             println("Firebase Admin SDK file not found in resources. Push notifications will not work.")
