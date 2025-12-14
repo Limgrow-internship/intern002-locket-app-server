@@ -39,6 +39,7 @@ object DatabaseFactory {
                     FcmTokensTable,
                     ConversationsTable,
                     MessagesTable,
+                    MemoriesTable
                 )
                 logger.info("Database schema verification/creation complete.")
             }

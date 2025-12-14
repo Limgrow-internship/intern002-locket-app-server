@@ -42,6 +42,24 @@ data class AuthResponse(
 data class GoogleRegistrationInfo(val email: String, val suggestedUsername: String)
 
 
+@Serializable
+data class ForgotPasswordRequest(
+    val email: String
+)
+
+@Serializable
+data class ResetPasswordRequest(
+    val email: String,
+    val otp: String,
+    val newPassword: String
+)
+
+@Serializable
+data class VerifyOtpRequest(
+    val email: String,
+    val otp: String,
+)
+
 
 sealed class GoogleLoginResult {
     data class Success(val authResponse: AuthResponse) : GoogleLoginResult()

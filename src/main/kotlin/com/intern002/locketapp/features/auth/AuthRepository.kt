@@ -4,8 +4,7 @@ import com.intern002.locketapp.core.database.DatabaseFactory.dbQuery
 import com.intern002.locketapp.core.database.tables.UsersTable
 import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import java.util.UUID
+import java.util.*
 
 data class User(
     val id: UUID,
@@ -37,6 +36,7 @@ interface AuthRepository {
     suspend fun linkGoogleAccount(userId: UUID, providerId: String): Boolean
     suspend fun updateRefreshToken(userId: UUID, refreshToken: String?): Boolean
     suspend fun findUserByRefreshToken(refreshToken: String): User?
+    suspend fun updatePassword(email: String, newPasswordHash: String): Boolean
 }
 
 class AuthRepositoryImpl : AuthRepository {
@@ -115,5 +115,11 @@ class AuthRepositoryImpl : AuthRepository {
         UsersTable.select { UsersTable.refreshToken eq refreshToken }
             .map(::toUser)
             .singleOrNull()
+    }
+
+    override suspend fun updatePassword(email: String, newPasswordHash: String): Boolean = dbQuery {
+        UsersTable.update({ UsersTable.email eq email }) {
+            it[passwordHash] = newPasswordHash
+        } > 0
     }
 }

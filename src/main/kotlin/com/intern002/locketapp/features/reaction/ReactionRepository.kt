@@ -33,7 +33,7 @@ class ReactionRepositoryImpl : ReactionRepository {
 
         if (existingReaction != null) {
             PostReactionsTable.update({ PostReactionsTable.id eq existingReaction[PostReactionsTable.id] }) {
-                it[this.reactionTypeId] = reactionTypeId
+                it[this.reactionTypeId] = reactionTypeId // Int
             }
         } else {
             PostReactionsTable.insert {

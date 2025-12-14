@@ -2,6 +2,7 @@ package com.intern002.locketapp.di
 
 import com.intern002.locketapp.core.security.JwtTokenProvider
 import com.intern002.locketapp.core.security.TokenProvider
+import com.intern002.locketapp.core.services.EmailService
 import com.intern002.locketapp.core.utils.BcryptHashing
 import com.intern002.locketapp.core.utils.Hashing
 import com.intern002.locketapp.features.auth.AuthRepository
@@ -13,16 +14,20 @@ import com.intern002.locketapp.features.chat.ChatService
 import com.intern002.locketapp.features.friends.FriendshipRepository
 import com.intern002.locketapp.features.friends.FriendshipRepositoryImpl
 import com.intern002.locketapp.features.friends.FriendshipService
+import com.intern002.locketapp.features.memory.MemoryRepository
+import com.intern002.locketapp.features.memory.MemoryRepositoryImpl
+import com.intern002.locketapp.features.memory.MemoryService
 import com.intern002.locketapp.features.notifications.*
 import com.intern002.locketapp.features.posts.PostRepository
 import com.intern002.locketapp.features.posts.PostRepositoryImpl
 import com.intern002.locketapp.features.posts.PostService
 import com.intern002.locketapp.features.reaction.ReactionRepository
+import com.intern002.locketapp.features.reaction.ReactionRepositoryImpl
 import com.intern002.locketapp.features.reaction.ReactionService
 import com.intern002.locketapp.features.users.UserRepository
 import com.intern002.locketapp.features.users.UserRepositoryImpl
 import com.intern002.locketapp.features.users.UserService
-import com.intern002.locketapp.features.reaction.ReactionRepositoryImpl
+import io.github.cdimascio.dotenv.dotenv
 import org.koin.dsl.module
 
 val appModule = module {
@@ -30,13 +35,13 @@ val appModule = module {
     single<TokenProvider> { JwtTokenProvider() }
 
     single<AuthRepository> { AuthRepositoryImpl() }
-    single { AuthService(get(), get(), get(), get()) }
+    single { AuthService(get(), get(), get(), get(), get()) }
 
     single<UserRepository> { UserRepositoryImpl() }
     single { UserService(get(), get(), get()) }
 
     single<FriendshipRepository> { FriendshipRepositoryImpl() }
-    single { FriendshipService(get(), get()) } 
+    single { FriendshipService(get(), get()) }
 
     single<ChatRepository> { ChatRepositoryImpl() }
     single { ChatService(get(), get()) }
@@ -46,10 +51,30 @@ val appModule = module {
 
     single<ReactionRepository> { ReactionRepositoryImpl() }
     single { ReactionService(get()) }
+    single { PostService(get(), get()) }
+
+    single { ReactionService(get()) }
 
     single<NotificationRepository> { NotificationRepositoryImpl() }
     single { FcmTokenRepository() }
-    single { FcmTokenService(get()) } 
+    single { FcmTokenService(get()) }
     single { FCMService(get()) }
     single { NotificationService(get(), get(), get(), get()) }
+
+    single {
+
+        val dotenv = dotenv {
+            ignoreIfMissing = true
+        }
+
+        EmailService(
+            host = dotenv["SMTP_HOST"] ?: "smtp.gmail.com",
+            port = dotenv["SMTP_PORT"]?.toInt() ?: 587,
+            user = dotenv["SMTP_USER"] ?: "",
+            pass = dotenv["SMTP_PASSWORD"] ?: ""
+        )
+    }
+
+    single<MemoryRepository> { MemoryRepositoryImpl() }
+    single { MemoryService(get()) }
 }

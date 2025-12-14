@@ -17,7 +17,7 @@ application {
 repositories {
     mavenCentral()
 }
-
+val exposed_version = "0.44.0"
 dependencies {
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
@@ -29,14 +29,16 @@ dependencies {
     implementation(libs.logback.classic)
     implementation("io.ktor:ktor-server-status-pages:2.3.12")
 
+
     // Exposed ORM 
-    implementation("org.jetbrains.exposed:exposed-core:0.41.1")
-    implementation("org.jetbrains.exposed:exposed-dao:0.41.1")
-    implementation("org.jetbrains.exposed:exposed-jdbc:0.41.1")
-    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.41.1")
+    implementation("org.jetbrains.exposed:exposed-core:${exposed_version}")
+    implementation("org.jetbrains.exposed:exposed-dao:${exposed_version}")
+    implementation("org.jetbrains.exposed:exposed-jdbc:${exposed_version}")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:${exposed_version}")
+    implementation("org.jetbrains.exposed:exposed-java-time:${exposed_version}")
 
     //  Database driver + connection pool 
-    implementation("org.postgresql:postgresql:42.7.3") 
+    implementation("org.postgresql:postgresql:42.7.3")
     implementation("com.zaxxer:HikariCP:5.1.0")
 
     // Dependency Injection (Koin)
@@ -55,6 +57,9 @@ dependencies {
 
     //  Firebase 
     implementation("com.google.firebase:firebase-admin:9.2.0")
+
+    //Email
+    implementation("org.apache.commons:commons-email:1.5")
 
     //  Test 
     testImplementation(libs.ktor.server.test.host)
