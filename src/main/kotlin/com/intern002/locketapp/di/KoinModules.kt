@@ -14,6 +14,9 @@ import com.intern002.locketapp.features.chat.ChatService
 import com.intern002.locketapp.features.friends.FriendshipRepository
 import com.intern002.locketapp.features.friends.FriendshipRepositoryImpl
 import com.intern002.locketapp.features.friends.FriendshipService
+import com.intern002.locketapp.features.memory.MemoryRepository
+import com.intern002.locketapp.features.memory.MemoryRepositoryImpl
+import com.intern002.locketapp.features.memory.MemoryService
 import com.intern002.locketapp.features.notifications.*
 import com.intern002.locketapp.features.posts.PostRepository
 import com.intern002.locketapp.features.posts.PostRepositoryImpl
@@ -71,4 +74,7 @@ val appModule = module {
             pass = dotenv["SMTP_PASSWORD"] ?: ""
         )
     }
+
+    single<MemoryRepository> { MemoryRepositoryImpl() }
+    single { MemoryService(get()) }
 }
