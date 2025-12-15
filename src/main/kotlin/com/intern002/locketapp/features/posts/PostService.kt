@@ -27,6 +27,7 @@ class PostService(
         val user = authRepository.findById(userId)
             ?: throw Exception("User not found")
 
+        // 2. Gọi Repo
         val post = postRepository.createPost(userId, request)
             ?: throw PostCreationException()
 
